@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>wordpeak — guess the curve</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,400&family=JetBrains+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <header class="hdr">
+      <div class="brand">
+        <span class="brand-mark">wordpeak</span>
+        <span class="brand-tag">a curve-guessing game</span>
+      </div>
+      <div class="score">
+        <div class="score-cell">
+          <span class="score-val" id="score-correct">0</span>
+          <span class="score-lbl">correct</span>
+        </div>
+        <div class="score-cell">
+          <span class="score-val" id="score-total">0</span>
+          <span class="score-lbl">rounds</span>
+        </div>
+        <div class="score-cell">
+          <span class="score-val" id="score-streak">0</span>
+          <span class="score-lbl">streak</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="prompt">
+        <div class="prompt-lead">which curve charts the word</div>
+        <h1 class="target" id="target">—</h1>
+        <div class="prompt-sub">
+          usage frequency in the Google Books English corpus,
+          <span id="year-range">1800–2019</span>
+        </div>
+      </section>
+
+      <section class="grid" id="grid"></section>
+
+      <section class="controls">
+        <div class="result" id="result" aria-live="polite"></div>
+        <button class="btn" id="next-btn" type="button" hidden>
+          next word →
+        </button>
+      </section>
+    </main>
+
+    <footer class="ftr">
+      <span
+        >data: Google Books Ngram Viewer · curves normalized to each word's
+        own peak</span
+      >
+    </footer>
+
+    <script type="module" src="./game.js"></script>
+  </body>
+</html>
