@@ -1,26 +1,84 @@
 import { writeFileSync, readFileSync, existsSync } from "node:fs";
 
 const WORDS = [
+  // technology
   "internet", "computer", "email", "smartphone", "blog", "website", "google",
   "typewriter", "telegram", "phonograph", "gramophone", "zeppelin",
+  "laptop", "tablet", "iphone", "android", "facebook", "twitter", "youtube",
+  "netflix", "amazon", "microsoft", "software", "algorithm", "database",
+  "keyboard", "printer", "fax", "pager", "walkman", "ipod", "cassette",
+  "vinyl", "floppy", "bluetooth", "wifi", "firewall", "hacker", "virus",
+  "spam", "browser", "streaming", "podcast", "emoji", "selfie", "meme",
+  "hashtag", "bitcoin", "cryptocurrency", "metaverse", "drone",
+  "satellite", "rocket", "telescope", "microscope", "calculator",
+  // transport
+  "horse", "carriage", "automobile", "airplane", "bicycle",
+  "motorcycle", "locomotive", "steamship", "submarine", "helicopter",
+  "subway", "wagon",
+  // war
   "war", "peace", "slavery", "depression", "revolution", "democracy",
+  "vietnam", "korea", "iraq", "afghanistan",
+  "army", "weapon", "cannon", "tank", "grenade", "missile", "nuclear",
+  "atomic", "veteran", "refugee", "holocaust", "genocide",
+  "napoleon", "lincoln", "washington", "churchill", "stalin",
+  // culture
   "christmas", "easter", "halloween", "thanksgiving",
   "radio", "television", "newspaper", "magazine",
-  "thou", "whilst", "ye", "hath", "shall",
-  "cool", "awesome", "rad", "groovy", "dude",
-  "horse", "carriage", "automobile", "airplane", "bicycle",
-  "king", "queen", "president", "dictator",
-  "god", "religion", "science", "philosophy",
-  "love", "hate", "fear", "hope",
-  "child", "woman", "man", "family",
-  "money", "gold", "silver", "dollar",
-  "vietnam", "korea", "iraq", "afghanistan",
   "beatles", "elvis", "madonna",
-  "cocaine", "marijuana", "alcohol", "tobacco",
+  "cinema", "hollywood", "concert", "orchestra", "opera",
+  "jazz", "blues", "rock", "disco", "punk", "hiphop",
+  "guitar", "piano", "violin", "trumpet", "museum", "library",
+  // food
+  "pizza", "hamburger", "sandwich", "sushi", "pasta", "bread",
+  "coffee", "tea", "wine", "beer", "whiskey", "cocktail",
+  "chocolate", "sugar", "vanilla", "tomato", "potato",
+  "banana", "strawberry", "avocado",
+  // nature
+  "thunder", "lightning", "hurricane", "earthquake", "volcano",
+  "forest", "jungle", "desert", "mountain", "river", "ocean",
+  "island", "glacier",
+  // animals
+  "dinosaur", "dragon", "unicorn", "dolphin", "elephant", "tiger",
+  "eagle", "butterfly", "spider", "octopus",
+  // abstract
+  "love", "hate", "fear", "hope",
+  "sorrow", "anger", "pride", "shame", "pleasure", "death", "life",
+  "marriage", "divorce", "dream", "memory", "truth", "wisdom", "beauty",
+  // religion
+  "god", "religion", "science", "philosophy",
+  "jesus", "christ", "buddha", "allah", "angel", "devil", "heaven",
+  "hell", "soul", "spirit", "sin", "prayer", "temple", "church",
+  "mosque", "bible", "quran", "atheism", "karma", "meditation",
+  // identity
   "feminism", "racism", "capitalism", "communism",
-  "dinosaur", "robot", "spaceship",
+  "socialism", "fascism", "gender", "sexuality", "gay", "lesbian",
+  "queer", "transgender", "diversity", "equality", "patriarchy",
+  // health
+  "cocaine", "marijuana", "alcohol", "tobacco",
+  "hospital", "surgery", "vaccine", "cancer", "diabetes", "obesity",
+  "anxiety", "therapy", "psychiatry", "abortion", "pandemic", "epidemic",
+  "plague", "hiv", "aids",
+  // money
+  "money", "gold", "silver", "dollar",
+  "stock", "investment", "profit", "debt", "banking", "inflation",
+  "recession", "poverty", "wealth", "billionaire", "taxation",
+  "globalization", "industrialization",
+  // people/places
+  "america", "europe", "asia", "africa", "china", "japan", "india",
+  "russia", "germany", "france", "england", "britain", "italy",
+  "spain", "mexico", "canada", "brazil", "australia",
+  "paris", "london", "rome", "tokyo", "chicago", "jerusalem",
+  // archaic / slang
+  "thou", "whilst", "ye", "hath", "shall",
+  "cool", "awesome", "rad", "groovy", "dude", "vibe", "lit",
+  // royalty / politics
+  "king", "queen", "president", "dictator", "emperor", "pharaoh",
+  // professions
   "doctor", "lawyer", "farmer", "soldier",
+  "teacher", "engineer", "programmer", "astronaut", "scientist",
+  // values
   "freedom", "liberty", "justice",
+  "child", "woman", "man", "family",
 ];
 
 const YEAR_START = 1800;
