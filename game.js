@@ -313,7 +313,7 @@ function openChat() {
 
   const seedPrompt = `In the Google Books English corpus (case-insensitive, 1800–2019), the curve for "${word}" peaks around ${peak}. Briefly explain why the curve has the shape it does — what historical, cultural, or linguistic forces drove the rises, peaks, and declines?`;
   state.chat.messages.push({ role: "user", content: seedPrompt });
-  appendUserMsg(`why does "${word}" peak around ${peak}?`);
+  appendUserMsg(`explain ${word}'s ngram`);
   const msgEl = appendAssistantMsg();
   streamReply(state.chat.messages.slice(), msgEl);
   document.getElementById("chat").scrollIntoView({ behavior: "smooth", block: "nearest" });
