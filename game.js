@@ -314,7 +314,7 @@ function openChat() {
   appendUserMsg(`explain ${word}'s ngram`);
   const msgEl = appendAssistantMsg();
   streamReply(state.chat.messages.slice(), msgEl);
-  document.getElementById("chat").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function onChatSubmit(e) {

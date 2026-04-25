@@ -35,6 +35,27 @@
     </header>
 
     <main class="main">
+      <section class="chat" id="chat" hidden>
+        <header class="chat-head">
+          <span class="chat-title">
+            <span class="gemini-spark" aria-hidden="true">✦</span>
+            <span>asking gemini about <em id="chat-word">—</em></span>
+          </span>
+          <button class="chat-close" id="chat-close" type="button" aria-label="close">×</button>
+        </header>
+        <form class="chat-form" id="chat-form" autocomplete="off">
+          <input
+            class="chat-input"
+            id="chat-input"
+            type="text"
+            placeholder="ask a follow-up…"
+            maxlength="500"
+          />
+          <button class="chat-send" id="chat-send" type="submit" aria-label="send">↵</button>
+        </form>
+        <div class="chat-log" id="chat-log"></div>
+      </section>
+
       <section class="prompt">
         <div class="prompt-lead">which curve charts the word</div>
         <h1 class="target" id="target">—</h1>
@@ -62,27 +83,6 @@
             next word →
           </button>
         </div>
-      </section>
-
-      <section class="chat" id="chat" hidden>
-        <header class="chat-head">
-          <span class="chat-title">
-            <span class="gemini-spark" aria-hidden="true">✦</span>
-            <span>asking gemini about <em id="chat-word">—</em></span>
-          </span>
-          <button class="chat-close" id="chat-close" type="button" aria-label="close">×</button>
-        </header>
-        <form class="chat-form" id="chat-form" autocomplete="off">
-          <input
-            class="chat-input"
-            id="chat-input"
-            type="text"
-            placeholder="ask a follow-up…"
-            maxlength="500"
-          />
-          <button class="chat-send" id="chat-send" type="submit" aria-label="send">↵</button>
-        </form>
-        <div class="chat-log" id="chat-log"></div>
       </section>
     </main>
 
