@@ -306,12 +306,10 @@ function openChat() {
   if (!state.round) return;
   closeChat();
   const word = state.round.target;
-  const series = state.data.series[word];
-  const peak = peakYear(series);
   document.getElementById("chat-word").textContent = word;
   document.getElementById("chat").hidden = false;
 
-  const seedPrompt = `In the Google Books English corpus (case-insensitive, 1800–2019), the curve for "${word}" peaks around ${peak}. Briefly explain why the curve has the shape it does — what historical, cultural, or linguistic forces drove the rises, peaks, and declines?`;
+  const seedPrompt = `Explain the shape of the Google Books English Ngram curve for "${word}" (case-insensitive, 1800–2019). What historical, cultural, or linguistic forces shaped it?`;
   state.chat.messages.push({ role: "user", content: seedPrompt });
   appendUserMsg(`explain ${word}'s ngram`);
   const msgEl = appendAssistantMsg();
