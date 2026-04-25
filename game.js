@@ -223,6 +223,7 @@ async function askGemini() {
   if (!state.round) return;
   closeAnswer();
   const word = state.round.target;
+  const peak = peakYear(state.data.series[word]);
   const panel = document.getElementById("answer");
   const textEl = document.getElementById("answer-text");
   panel.hidden = false;
@@ -241,7 +242,7 @@ async function askGemini() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         messages: [
-          { role: "user", content: `why is this the ngram for "${word}"? make sure you look deeply.` },
+          { role: "user", content: `why was "${word}" so big in ${peak}?` },
         ],
       }),
       signal: ctrl.signal,
