@@ -48,9 +48,21 @@
 
       <section class="controls">
         <div class="result" id="result" aria-live="polite"></div>
-        <button class="btn" id="next-btn" type="button" hidden>
-          next word →
-        </button>
+        <div class="controls-buttons">
+          <a
+            class="btn btn-secondary"
+            id="ask-gemini"
+            target="_blank"
+            rel="noopener noreferrer"
+            hidden
+          >
+            <span class="gemini-spark" aria-hidden="true">✦</span>
+            ask gemini why
+          </a>
+          <button class="btn" id="next-btn" type="button" hidden>
+            next word →
+          </button>
+        </div>
       </section>
     </main>
 

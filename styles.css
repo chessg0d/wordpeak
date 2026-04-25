@@ -382,6 +382,12 @@ body::before {
   font-style: normal;
 }
 
+.controls-buttons {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
 .btn {
   font-family: "Fraunces", serif;
   font-size: 18px;
@@ -393,17 +399,57 @@ body::before {
   border-radius: 999px;
   cursor: pointer;
   letter-spacing: -0.01em;
-  transition: transform 120ms ease, background 160ms ease;
+  transition: transform 120ms ease, background 160ms ease, border-color 160ms ease, color 160ms ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
 }
 
 .btn:hover {
   background: var(--accent);
   border-color: var(--accent);
+  color: var(--paper);
   transform: translateY(-1px);
 }
 
 .btn:active {
   transform: translateY(0);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--ink-soft);
+}
+
+.btn-secondary:hover {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.gemini-spark {
+  background: linear-gradient(135deg, #4285f4 0%, #9b72cb 45%, #d96570 80%, #f9ab00 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  font-size: 20px;
+  line-height: 1;
+  display: inline-block;
+  transform: translateY(1px);
+}
+
+.btn-secondary:hover .gemini-spark {
+  animation: spark-spin 600ms ease;
+}
+
+@keyframes spark-spin {
+  0% { transform: translateY(1px) rotate(0deg) scale(1); }
+  50% { transform: translateY(1px) rotate(180deg) scale(1.2); }
+  100% { transform: translateY(1px) rotate(360deg) scale(1); }
 }
 
 .ftr {

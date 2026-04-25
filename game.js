@@ -146,6 +146,7 @@ function renderRound() {
   const result = document.getElementById("result");
   result.innerHTML = "";
   document.getElementById("next-btn").hidden = true;
+  document.getElementById("ask-gemini").hidden = true;
 }
 
 function onPick(index) {
@@ -185,6 +186,14 @@ function onPick(index) {
   const nextBtn = document.getElementById("next-btn");
   nextBtn.hidden = false;
   nextBtn.focus();
+
+  const word = state.round.target;
+  const series = state.data.series[word];
+  const peak = peakYear(series);
+  const prompt = `Explain the shape of the Google Books Ngram curve for the word "${word}" (English, case-insensitive, 1800–2019). It peaks around ${peak}. Why does the curve look the way it does — what historical or cultural forces drove the rises and falls?`;
+  const askBtn = document.getElementById("ask-gemini");
+  askBtn.href = `https://www.google.com/search?udm=50&q=${encodeURIComponent(prompt)}`;
+  askBtn.hidden = false;
 }
 
 async function main() {
