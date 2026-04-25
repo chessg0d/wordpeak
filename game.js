@@ -229,6 +229,7 @@ async function askGemini() {
   panel.hidden = false;
   textEl.classList.add("streaming");
   textEl.dataset.raw = "";
+  window.scrollTo({ top: 0, behavior: "smooth" });
 
   const ctrl = new AbortController();
   state.answer.abort = ctrl;
