@@ -49,20 +49,40 @@
       <section class="controls">
         <div class="result" id="result" aria-live="polite"></div>
         <div class="controls-buttons">
-          <a
+          <button
             class="btn btn-secondary"
             id="ask-gemini"
-            target="_blank"
-            rel="noopener noreferrer"
+            type="button"
             hidden
           >
             <span class="gemini-spark" aria-hidden="true">✦</span>
             ask gemini why
-          </a>
+          </button>
           <button class="btn" id="next-btn" type="button" hidden>
             next word →
           </button>
         </div>
+      </section>
+
+      <section class="chat" id="chat" hidden>
+        <header class="chat-head">
+          <span class="chat-title">
+            <span class="gemini-spark" aria-hidden="true">✦</span>
+            <span>asking gemini about <em id="chat-word">—</em></span>
+          </span>
+          <button class="chat-close" id="chat-close" type="button" aria-label="close">×</button>
+        </header>
+        <div class="chat-log" id="chat-log"></div>
+        <form class="chat-form" id="chat-form" autocomplete="off">
+          <input
+            class="chat-input"
+            id="chat-input"
+            type="text"
+            placeholder="ask a follow-up…"
+            maxlength="500"
+          />
+          <button class="chat-send" id="chat-send" type="submit" aria-label="send">↵</button>
+        </form>
       </section>
     </main>
 

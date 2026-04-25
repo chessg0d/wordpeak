@@ -5,11 +5,14 @@ const PAD_R = 10;
 const PAD_T = 12;
 const PAD_B = 8;
 
+const API_URL = "https://wordpeak-api.towsonerik.workers.dev/";
+
 const state = {
   data: null,
   words: [],
   round: null,
   score: { correct: 0, total: 0, streak: 0 },
+  chat: { messages: [], streaming: false, abort: null },
 };
 
 async function loadData() {
@@ -147,6 +150,7 @@ function renderRound() {
   result.innerHTML = "";
   document.getElementById("next-btn").hidden = true;
   document.getElementById("ask-gemini").hidden = true;
+  closeChat();
 }
 
 function onPick(index) {
@@ -187,19 +191,160 @@ function onPick(index) {
   nextBtn.hidden = false;
   nextBtn.focus();
 
+  document.getElementById("ask-gemini").hidden = false;
+}
+
+function escapeHtml(s) {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function renderMarkdown(text) {
+  const escaped = escapeHtml(text);
+  return escaped
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/(?<![*\w])\*([^*\n]+)\*(?!\w)/g, "<em>$1</em>");
+}
+
+function closeChat() {
+  if (state.chat.abort) {
+    state.chat.abort.abort();
+    state.chat.abort = null;
+  }
+  state.chat.messages = [];
+  state.chat.streaming = false;
+  document.getElementById("chat").hidden = true;
+  document.getElementById("chat-log").innerHTML = "";
+  document.getElementById("chat-input").value = "";
+}
+
+function appendUserMsg(text) {
+  const log = document.getElementById("chat-log");
+  const el = document.createElement("div");
+  el.className = "chat-msg user";
+  el.textContent = text;
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+}
+
+function appendAssistantMsg() {
+  const log = document.getElementById("chat-log");
+  const el = document.createElement("div");
+  el.className = "chat-msg assistant streaming";
+  el.dataset.raw = "";
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+  return el;
+}
+
+async function streamReply(messages, msgEl) {
+  const log = document.getElementById("chat-log");
+  const ctrl = new AbortController();
+  state.chat.abort = ctrl;
+  state.chat.streaming = true;
+  document.getElementById("chat-send").disabled = true;
+  document.getElementById("chat-input").disabled = true;
+
+  let full = "";
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages }),
+      signal: ctrl.signal,
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(err.slice(0, 200) || `HTTP ${res.status}`);
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split("\n");
+      buf = lines.pop() ?? "";
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        try {
+          const j = JSON.parse(line.slice(6));
+          if (j.text) {
+            full += j.text;
+            msgEl.dataset.raw = full;
+            msgEl.innerHTML = renderMarkdown(full);
+            log.scrollTop = log.scrollHeight;
+          }
+          if (j.error) throw new Error(j.error);
+        } catch (e) {
+          if (e.message?.startsWith("stopped:") || e.message?.startsWith("gemini:")) throw e;
+        }
+      }
+    }
+    state.chat.messages.push({ role: "assistant", content: full });
+  } catch (e) {
+    if (e.name === "AbortError") return;
+    msgEl.classList.add("error");
+    msgEl.textContent = `Couldn't reach Gemini: ${e.message}`;
+  } finally {
+    msgEl.classList.remove("streaming");
+    state.chat.streaming = false;
+    state.chat.abort = null;
+    const send = document.getElementById("chat-send");
+    const input = document.getElementById("chat-input");
+    send.disabled = false;
+    input.disabled = false;
+    input.focus();
+  }
+}
+
+function openChat() {
+  if (!state.round) return;
+  closeChat();
   const word = state.round.target;
   const series = state.data.series[word];
   const peak = peakYear(series);
-  const prompt = `Explain the shape of the Google Books Ngram curve for the word "${word}" (English, case-insensitive, 1800–2019). It peaks around ${peak}. Why does the curve look the way it does — what historical or cultural forces drove the rises and falls?`;
-  const askBtn = document.getElementById("ask-gemini");
-  askBtn.href = `https://www.google.com/search?udm=50&q=${encodeURIComponent(prompt)}`;
-  askBtn.hidden = false;
+  document.getElementById("chat-word").textContent = word;
+  document.getElementById("chat").hidden = false;
+
+  const seedPrompt = `In the Google Books English corpus (case-insensitive, 1800–2019), the curve for "${word}" peaks around ${peak}. Briefly explain why the curve has the shape it does — what historical, cultural, or linguistic forces drove the rises, peaks, and declines?`;
+  state.chat.messages.push({ role: "user", content: seedPrompt });
+  appendUserMsg(`why does "${word}" peak around ${peak}?`);
+  const msgEl = appendAssistantMsg();
+  streamReply(state.chat.messages.slice(), msgEl);
+  document.getElementById("chat").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function onChatSubmit(e) {
+  e.preventDefault();
+  if (state.chat.streaming) return;
+  const input = document.getElementById("chat-input");
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  state.chat.messages.push({ role: "user", content: text });
+  appendUserMsg(text);
+  const msgEl = appendAssistantMsg();
+  streamReply(state.chat.messages.slice(), msgEl);
 }
 
 async function main() {
   await loadData();
   document.getElementById("next-btn").addEventListener("click", newRound);
+  document.getElementById("ask-gemini").addEventListener("click", openChat);
+  document.getElementById("chat-close").addEventListener("click", closeChat);
+  document.getElementById("chat-form").addEventListener("submit", onChatSubmit);
+
   document.addEventListener("keydown", (e) => {
+    const inChat = e.target.closest?.("#chat");
+    if (inChat) {
+      if (e.key === "Escape") closeChat();
+      return;
+    }
     if (state.round?.locked && (e.key === "Enter" || e.key === " ")) {
       e.preventDefault();
       newRound();

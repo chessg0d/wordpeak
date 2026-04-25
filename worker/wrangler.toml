@@ -1,0 +1,6 @@
+name = "wordpeak-api"
+main = "src/index.js"
+compatibility_date = "2025-04-01"
+
+[observability]
+enabled = true
