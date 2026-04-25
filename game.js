@@ -12,7 +12,7 @@ const state = {
   words: [],
   round: null,
   score: { correct: 0, total: 0, streak: 0 },
-  chat: { messages: [], streaming: false, abort: null },
+  answer: { abort: null },
 };
 
 async function loadData() {
@@ -150,7 +150,7 @@ function renderRound() {
   result.innerHTML = "";
   document.getElementById("next-btn").hidden = true;
   document.getElementById("ask-gemini").hidden = true;
-  closeChat();
+  closeAnswer();
 }
 
 function onPick(index) {
@@ -209,51 +209,41 @@ function renderMarkdown(text) {
     .replace(/(?<![*\w])\*([^*\n]+)\*(?!\w)/g, "<em>$1</em>");
 }
 
-function closeChat() {
-  if (state.chat.abort) {
-    state.chat.abort.abort();
-    state.chat.abort = null;
+function closeAnswer() {
+  if (state.answer.abort) {
+    state.answer.abort.abort();
+    state.answer.abort = null;
   }
-  state.chat.messages = [];
-  state.chat.streaming = false;
-  document.getElementById("chat").hidden = true;
-  document.getElementById("chat-log").innerHTML = "";
-  document.getElementById("chat-input").value = "";
+  document.getElementById("answer").hidden = true;
+  document.getElementById("answer-text").innerHTML = "";
+  document.getElementById("answer-text").classList.remove("streaming", "error");
 }
 
-function appendUserMsg(text) {
-  const log = document.getElementById("chat-log");
-  const el = document.createElement("div");
-  el.className = "chat-msg user";
-  el.textContent = text;
-  log.appendChild(el);
-  log.scrollTop = log.scrollHeight;
-}
+async function askGemini() {
+  if (!state.round) return;
+  closeAnswer();
+  const word = state.round.target;
+  const panel = document.getElementById("answer");
+  const textEl = document.getElementById("answer-text");
+  panel.hidden = false;
+  textEl.classList.add("streaming");
+  textEl.dataset.raw = "";
 
-function appendAssistantMsg() {
-  const log = document.getElementById("chat-log");
-  const el = document.createElement("div");
-  el.className = "chat-msg assistant streaming";
-  el.dataset.raw = "";
-  log.appendChild(el);
-  log.scrollTop = log.scrollHeight;
-  return el;
-}
-
-async function streamReply(messages, msgEl) {
-  const log = document.getElementById("chat-log");
   const ctrl = new AbortController();
-  state.chat.abort = ctrl;
-  state.chat.streaming = true;
-  document.getElementById("chat-send").disabled = true;
-  document.getElementById("chat-input").disabled = true;
+  state.answer.abort = ctrl;
+  const askBtn = document.getElementById("ask-gemini");
+  askBtn.disabled = true;
 
   let full = "";
   try {
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({
+        messages: [
+          { role: "user", content: `why is this the ngram for "${word}"? make sure you look deeply.` },
+        ],
+      }),
       signal: ctrl.signal,
     });
     if (!res.ok) {
@@ -275,9 +265,8 @@ async function streamReply(messages, msgEl) {
           const j = JSON.parse(line.slice(6));
           if (j.text) {
             full += j.text;
-            msgEl.dataset.raw = full;
-            msgEl.innerHTML = renderMarkdown(full);
-            log.scrollTop = log.scrollHeight;
+            textEl.dataset.raw = full;
+            textEl.innerHTML = renderMarkdown(full);
           }
           if (j.error) throw new Error(j.error);
         } catch (e) {
@@ -285,64 +274,23 @@ async function streamReply(messages, msgEl) {
         }
       }
     }
-    state.chat.messages.push({ role: "assistant", content: full });
   } catch (e) {
     if (e.name === "AbortError") return;
-    msgEl.classList.add("error");
-    msgEl.textContent = `Couldn't reach Gemini: ${e.message}`;
+    textEl.classList.add("error");
+    textEl.textContent = `Couldn't reach Gemini: ${e.message}`;
   } finally {
-    msgEl.classList.remove("streaming");
-    state.chat.streaming = false;
-    state.chat.abort = null;
-    const send = document.getElementById("chat-send");
-    const input = document.getElementById("chat-input");
-    send.disabled = false;
-    input.disabled = false;
-    input.focus();
+    textEl.classList.remove("streaming");
+    state.answer.abort = null;
+    askBtn.disabled = false;
   }
-}
-
-function openChat() {
-  if (!state.round) return;
-  closeChat();
-  const word = state.round.target;
-  document.getElementById("chat-word").textContent = word;
-  document.getElementById("chat").hidden = false;
-
-  const seedPrompt = `why is this the ngram for "${word}"? make sure you look deeply.`;
-  state.chat.messages.push({ role: "user", content: seedPrompt });
-  appendUserMsg(`explain ${word}'s ngram`);
-  const msgEl = appendAssistantMsg();
-  streamReply(state.chat.messages.slice(), msgEl);
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-function onChatSubmit(e) {
-  e.preventDefault();
-  if (state.chat.streaming) return;
-  const input = document.getElementById("chat-input");
-  const text = input.value.trim();
-  if (!text) return;
-  input.value = "";
-  state.chat.messages.push({ role: "user", content: text });
-  appendUserMsg(text);
-  const msgEl = appendAssistantMsg();
-  streamReply(state.chat.messages.slice(), msgEl);
 }
 
 async function main() {
   await loadData();
   document.getElementById("next-btn").addEventListener("click", newRound);
-  document.getElementById("ask-gemini").addEventListener("click", openChat);
-  document.getElementById("chat-close").addEventListener("click", closeChat);
-  document.getElementById("chat-form").addEventListener("submit", onChatSubmit);
+  document.getElementById("ask-gemini").addEventListener("click", askGemini);
 
   document.addEventListener("keydown", (e) => {
-    const inChat = e.target.closest?.("#chat");
-    if (inChat) {
-      if (e.key === "Escape") closeChat();
-      return;
-    }
     if (state.round?.locked && (e.key === "Enter" || e.key === " ")) {
       e.preventDefault();
       newRound();
