@@ -242,7 +242,7 @@ async function askGemini() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         messages: [
-          { role: "user", content: `why was "${word}" so big in ${peak}?` },
+          { role: "user", content: `why was "${word}" so big in ${peak}? give a sharp answer that makes an average person love history.` },
         ],
       }),
       signal: ctrl.signal,
