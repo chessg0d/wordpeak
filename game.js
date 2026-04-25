@@ -309,7 +309,7 @@ function openChat() {
   document.getElementById("chat-word").textContent = word;
   document.getElementById("chat").hidden = false;
 
-  const seedPrompt = `Explain the shape of the Google Books English Ngram curve for "${word}" (case-insensitive, 1800–2019). What historical, cultural, or linguistic forces shaped it?`;
+  const seedPrompt = `why is this the ngram for "${word}"? make sure you look deeply.`;
   state.chat.messages.push({ role: "user", content: seedPrompt });
   appendUserMsg(`explain ${word}'s ngram`);
   const msgEl = appendAssistantMsg();
