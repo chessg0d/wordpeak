@@ -36,6 +36,20 @@ function peakDecade(series) {
   return Math.floor(peakYear / 10) * 10;
 }
 
+function decadalSamples(series) {
+  let max = -Infinity;
+  for (const v of series) if (v > max) max = v;
+  const samples = [];
+  for (let i = 0; i < series.length; i += 10) {
+    samples.push(`${yearStart + i}:${Math.round((series[i] / max) * 100)}`);
+  }
+  const last = series.length - 1;
+  if (last % 10 !== 0) {
+    samples.push(`${yearStart + last}:${Math.round((series[last] / max) * 100)}`);
+  }
+  return samples.join(" ");
+}
+
 let answers = {};
 if (existsSync(OUT)) {
   answers = JSON.parse(readFileSync(OUT, "utf8"));
@@ -45,7 +59,8 @@ function save() {
 }
 
 async function generate(word) {
-  const userMsg = `why does ngram viewer of "${word}" look like this? add more details, bullet point. what does the evolution of the chart show about the human condition?`;
+  const series = data.series[word];
+  const userMsg = `why does ngram viewer of "${word}" look like this?\n(peak ${peakDecade(series)}s · trajectory by decade, 0-100 of own peak: ${decadalSamples(series)})\nadd more details, bullet point. what does the evolution of the chart show about the human condition?`;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
   const res = await fetch(url, {

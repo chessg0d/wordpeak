@@ -296,7 +296,7 @@ async function askGemini() {
           {
             role: "user",
             content:
-              `why does ngram viewer of "${word}" look like this? add more details, bullet point. what does the evolution of the chart show about the human condition?`,
+              `why does ngram viewer of "${word}" look like this?\n(peak ${Math.floor(brief.peak / 10) * 10}s · trajectory by decade, 0-100 of own peak: ${brief.samples})\nadd more details, bullet point. what does the evolution of the chart show about the human condition?`,
           },
         ],
       }),
