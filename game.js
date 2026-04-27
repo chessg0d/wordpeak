@@ -52,6 +52,35 @@ function peakYear(series) {
   return state.data.yearStart + idx;
 }
 
+function buildCurveBrief(series) {
+  const yearStart = state.data.yearStart;
+  const yearEnd = state.data.yearEnd;
+  let maxVal = -Infinity;
+  let peakIdx = 0;
+  let minVal = Infinity;
+  let troughIdx = 0;
+  for (let i = 0; i < series.length; i++) {
+    if (series[i] > maxVal) { maxVal = series[i]; peakIdx = i; }
+    if (series[i] < minVal) { minVal = series[i]; troughIdx = i; }
+  }
+  const samples = [];
+  for (let i = 0; i < series.length; i += 10) {
+    const norm = Math.round((series[i] / maxVal) * 100);
+    samples.push(`${yearStart + i}:${norm}`);
+  }
+  const lastIdx = series.length - 1;
+  if ((lastIdx % 10) !== 0) {
+    samples.push(`${yearStart + lastIdx}:${Math.round((series[lastIdx] / maxVal) * 100)}`);
+  }
+  return {
+    samples: samples.join(" "),
+    peak: yearStart + peakIdx,
+    trough: yearStart + troughIdx,
+    yearStart,
+    yearEnd,
+  };
+}
+
 function buildChartSVG(series) {
   const n = series.length;
   const max = Math.max(...series);
@@ -223,7 +252,7 @@ async function askGemini() {
   if (!state.round) return;
   closeAnswer();
   const word = state.round.target;
-  const peak = peakYear(state.data.series[word]);
+  const brief = buildCurveBrief(state.data.series[word]);
   const panel = document.getElementById("answer");
   const textEl = document.getElementById("answer-text");
   panel.hidden = false;
@@ -243,7 +272,11 @@ async function askGemini() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         messages: [
-          { role: "user", content: `why was "${word}" so big in ${peak}? give a sharp answer that makes an average person love history.` },
+          {
+            role: "user",
+            content:
+              `Google Books Ngram curve for "${word}" — relative book frequency from ${brief.yearStart} to ${brief.yearEnd}, normalized 0-100 to its own peak, sampled by decade:\n${brief.samples}\nPeak year: ${brief.peak}. Trough year: ${brief.trough}.\n\nTell the story this curve reveals — why the rise, the fall, the spikes, the rebounds — tying the shape to history, language, and culture. Don't just narrate the numbers; reveal what changed in the world. Make it vivid and very interesting in 8–30 sentences.`,
+          },
         ],
       }),
       signal: ctrl.signal,

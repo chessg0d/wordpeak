@@ -5,7 +5,7 @@ const ALLOWED_ORIGINS = new Set([
   "http://localhost:8000",
 ]);
 
-const MODEL = "qwen/qwen3-32b";
+const MODEL = "gemini-3-flash-preview";
 
 function corsHeaders(origin) {
   const allow = ALLOWED_ORIGINS.has(origin) ? origin : "https://wordpeak.app";
@@ -59,36 +59,42 @@ export default {
       }
     }
 
-    const systemMsg = {
-      role: "system",
-      content:
-        "You are a curious historian and linguist explaining Google Books Ngram Viewer curves. Keep answers concise (2-4 short paragraphs unless asked for more), grounded in plausible history and culture. Don't restate the question. Don't use heavy markdown — plain prose with occasional **bold** for key terms or *italics* for word mentions is fine. Never include <think> tags or chain-of-thought; reply directly with the explanation only.",
+    const systemInstruction = {
+      parts: [{
+        text: "You are a curious historian and linguist explaining Google Books Ngram Viewer curves. Read the curve as a *trajectory* — the shape over time tells a richer story than any single peak year. Frame answers around the rise, fall, troughs, spikes, and rebounds you actually see in the data, tying them to historical, cultural, technological, or linguistic shifts. Don't restate the question or rehash the numbers. Plain prose with occasional **bold** for key terms or *italics* for word mentions — no heavy markdown, no headings. Make it vivid; make an average person love history.",
+      }],
     };
 
-    const upstream = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${env.GROQ_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        stream: true,
+    const geminiBody = {
+      systemInstruction,
+      contents: messages.map((m) => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }],
+      })),
+      generationConfig: {
         temperature: 0.7,
-        max_tokens: 1200,
-        messages: [systemMsg, ...messages],
-      }),
+        maxOutputTokens: 2400,
+        thinkingConfig: {
+          thinkingLevel: "high",
+          includeThoughts: false,
+        },
+      },
+    };
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:streamGenerateContent?alt=sse&key=${env.GEMINI_API_KEY}`;
+
+    const upstream = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(geminiBody),
     });
 
     if (!upstream.ok) {
       const errText = await upstream.text();
-      return jsonErr(upstream.status, `groq: ${errText.slice(0, 500)}`, origin);
+      return jsonErr(upstream.status, `gemini: ${errText.slice(0, 500)}`, origin);
     }
 
-    // Transform OpenAI-style SSE → simplified SSE with just {text} chunks.
-    // Strip any <think>...</think> blocks defensively (Qwen reasoning models sometimes emit them).
     let buffer = "";
-    let inThink = false;
     const decoder = new TextDecoder();
     const encoder = new TextEncoder();
     const transform = new TransformStream({
@@ -99,34 +105,21 @@ export default {
         for (const line of lines) {
           if (!line.startsWith("data: ")) continue;
           const payload = line.slice(6).trim();
-          if (!payload || payload === "[DONE]") continue;
+          if (!payload) continue;
           try {
             const json = JSON.parse(payload);
-            let text = json?.choices?.[0]?.delta?.content;
-            if (text) {
-              // Strip <think> blocks (handle across-chunk boundaries)
-              let out = "";
-              let i = 0;
-              while (i < text.length) {
-                if (inThink) {
-                  const end = text.indexOf("</think>", i);
-                  if (end === -1) { i = text.length; break; }
-                  i = end + 8;
-                  inThink = false;
-                } else {
-                  const start = text.indexOf("<think>", i);
-                  if (start === -1) { out += text.slice(i); break; }
-                  out += text.slice(i, start);
-                  i = start + 7;
-                  inThink = true;
+            const parts = json?.candidates?.[0]?.content?.parts;
+            if (Array.isArray(parts)) {
+              for (const part of parts) {
+                if (part?.thought) continue;
+                const text = part?.text;
+                if (text) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
                 }
               }
-              if (out) {
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: out })}\n\n`));
-              }
             }
-            const finish = json?.choices?.[0]?.finish_reason;
-            if (finish && finish !== "stop" && finish !== "length") {
+            const finish = json?.candidates?.[0]?.finishReason;
+            if (finish && finish !== "STOP" && finish !== "MAX_TOKENS") {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: `stopped: ${finish}` })}\n\n`));
             }
           } catch {
