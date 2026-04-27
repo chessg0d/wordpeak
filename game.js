@@ -232,7 +232,28 @@ function escapeHtml(s) {
 
 function renderMarkdown(text) {
   const escaped = escapeHtml(text);
-  return escaped
+  const blocks = escaped.split(/\n\s*\n+/);
+  const rendered = blocks.map((block) => {
+    const trimmed = block.trim();
+    if (!trimmed) return "";
+    if (/^-{3,}$/.test(trimmed)) return "<hr>";
+    const headingMatch = trimmed.match(/^(#{2,4})\s+(.+)$/);
+    if (headingMatch) {
+      const level = headingMatch[1].length;
+      return `<h${level}>${headingMatch[2]}</h${level}>`;
+    }
+    const lines = trimmed.split("\n");
+    if (lines.length > 1 && lines.every((l) => /^\s*[-*]\s+/.test(l))) {
+      const items = lines.map((l) => l.replace(/^\s*[-*]\s+/, ""));
+      return `<ul>${items.map((i) => `<li>${i}</li>`).join("")}</ul>`;
+    }
+    if (lines.length > 1 && lines.every((l) => /^\s*\d+\.\s+/.test(l))) {
+      const items = lines.map((l) => l.replace(/^\s*\d+\.\s+/, ""));
+      return `<ol>${items.map((i) => `<li>${i}</li>`).join("")}</ol>`;
+    }
+    return `<p>${lines.join("<br>")}</p>`;
+  }).filter(Boolean);
+  return rendered.join("")
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/(?<![*\w])\*([^*\n]+)\*(?!\w)/g, "<em>$1</em>");

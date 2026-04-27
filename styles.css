@@ -471,9 +471,36 @@ body::before {
   font-size: 16px;
   line-height: 1.6;
   color: var(--ink);
-  white-space: pre-wrap;
 }
 
+.answer-text p { margin: 0 0 0.85em 0; }
+.answer-text p:last-child { margin-bottom: 0; }
+.answer-text h2 {
+  font-family: "Fraunces", serif;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 1.4em 0 0.4em 0;
+  letter-spacing: -0.005em;
+}
+.answer-text h2:first-child { margin-top: 0; }
+.answer-text h3 {
+  font-family: "Fraunces", serif;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 1.1em 0 0.3em 0;
+}
+.answer-text h4 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0.9em 0 0.25em 0;
+}
+.answer-text ul, .answer-text ol { margin: 0 0 0.85em 1.2em; padding: 0; }
+.answer-text li { margin: 0.2em 0; }
+.answer-text hr {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: 1.2em 0;
+}
 .answer-text strong { font-weight: 700; }
 .answer-text em { font-style: italic; }
 .answer-text code {
