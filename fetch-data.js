@@ -1,85 +1,120 @@
 import { writeFileSync, readFileSync, existsSync } from "node:fs";
 
-const WORDS = [
-  // technology
-  "internet", "computer", "email", "smartphone", "blog", "website", "google",
-  "typewriter", "telegram", "phonograph", "gramophone", "zeppelin",
-  "laptop", "tablet", "iphone", "android", "facebook", "twitter", "youtube",
-  "netflix", "amazon", "microsoft", "software", "algorithm", "database",
-  "keyboard", "printer", "fax", "pager", "walkman", "ipod", "cassette",
-  "vinyl", "floppy", "bluetooth", "wifi", "firewall", "hacker", "virus",
-  "spam", "browser", "streaming", "podcast", "emoji", "selfie", "meme",
-  "hashtag", "bitcoin", "cryptocurrency", "metaverse", "drone",
-  "satellite", "rocket", "telescope", "microscope", "calculator",
-  // transport
-  "horse", "carriage", "automobile", "airplane", "bicycle",
-  "motorcycle", "locomotive", "steamship", "submarine", "helicopter",
-  "subway", "wagon",
-  // war
-  "war", "peace", "slavery", "depression", "revolution", "democracy",
-  "vietnam", "korea", "iraq", "afghanistan",
-  "army", "weapon", "cannon", "tank", "grenade", "missile", "nuclear",
-  "atomic", "veteran", "refugee", "holocaust", "genocide",
-  "napoleon", "lincoln", "washington", "churchill", "stalin",
-  // culture
-  "christmas", "easter", "halloween", "thanksgiving",
-  "radio", "television", "newspaper", "magazine",
-  "beatles", "elvis", "madonna",
-  "cinema", "hollywood", "concert", "orchestra", "opera",
-  "jazz", "blues", "rock", "disco", "punk", "hiphop",
-  "guitar", "piano", "violin", "trumpet", "museum", "library",
-  // food
-  "pizza", "hamburger", "sandwich", "sushi", "pasta", "bread",
-  "coffee", "tea", "wine", "beer", "whiskey", "cocktail",
-  "chocolate", "sugar", "vanilla", "tomato", "potato",
-  "banana", "strawberry", "avocado",
-  // nature
-  "thunder", "lightning", "hurricane", "earthquake", "volcano",
-  "forest", "jungle", "desert", "mountain", "river", "ocean",
-  "island", "glacier",
-  // animals
-  "dinosaur", "dragon", "unicorn", "dolphin", "elephant", "tiger",
-  "eagle", "butterfly", "spider", "octopus",
-  // abstract
-  "love", "hate", "fear", "hope",
-  "sorrow", "anger", "pride", "shame", "pleasure", "death", "life",
-  "marriage", "divorce", "dream", "memory", "truth", "wisdom", "beauty",
-  // religion
-  "god", "religion", "science", "philosophy",
-  "jesus", "christ", "buddha", "allah", "angel", "devil", "heaven",
-  "hell", "soul", "spirit", "sin", "prayer", "temple", "church",
-  "mosque", "bible", "quran", "atheism", "karma", "meditation",
-  // identity
-  "feminism", "racism", "capitalism", "communism",
-  "socialism", "fascism", "gender", "sexuality", "gay", "lesbian",
-  "queer", "transgender", "diversity", "equality", "patriarchy",
-  // health
-  "cocaine", "marijuana", "alcohol", "tobacco",
-  "hospital", "surgery", "vaccine", "cancer", "diabetes", "obesity",
-  "anxiety", "therapy", "psychiatry", "abortion", "pandemic", "epidemic",
-  "plague", "hiv", "aids",
-  // money
-  "money", "gold", "silver", "dollar",
-  "stock", "investment", "profit", "debt", "banking", "inflation",
-  "recession", "poverty", "wealth", "billionaire", "taxation",
-  "globalization", "industrialization",
-  // people/places
-  "america", "europe", "asia", "africa", "china", "japan", "india",
-  "russia", "germany", "france", "england", "britain", "italy",
-  "spain", "mexico", "canada", "brazil", "australia",
-  "paris", "london", "rome", "tokyo", "chicago", "jerusalem",
-  // archaic / slang
-  "thou", "whilst", "ye", "hath", "shall",
-  "cool", "awesome", "rad", "groovy", "dude", "vibe", "lit",
-  // royalty / politics
-  "king", "queen", "president", "dictator", "emperor", "pharaoh",
-  // professions
-  "doctor", "lawyer", "farmer", "soldier",
-  "teacher", "engineer", "programmer", "astronaut", "scientist",
-  // values
-  "freedom", "liberty", "justice",
-  "child", "woman", "man", "family",
+// Mysterious / evocative words like "destroyed" — drama, doom, religion, fate,
+// old war, sin, supernatural. No pronouns, no modern brands, no pop tech.
+// Categories are for readability; flattened + deterministically shuffled below.
+const CATEGORIES = [
+  // dramatic past-tense verbs
+  ["destroyed", "vanished", "perished", "conquered", "abandoned", "forsaken",
+   "slain", "banished", "exiled", "betrayed", "plundered", "ravaged", "ruined",
+   "drowned", "burned", "beheaded", "vanquished", "devoured", "condemned",
+   "tormented", "crucified", "scorned", "withered", "summoned", "beheld",
+   "awakened", "departed", "foretold"],
+
+  // calamity, doom
+  ["plague", "pestilence", "famine", "calamity", "vengeance", "treason",
+   "tyranny", "conquest", "siege", "slaughter", "massacre", "scourge",
+   "desolation", "havoc", "ruin"],
+
+  // death, mourning, eternity
+  ["fate", "destiny", "mortality", "grave", "tomb", "sepulchre", "ashes",
+   "requiem", "mourning", "lament", "elegy", "shroud", "oblivion", "eternity",
+   "doom"],
+
+  // sacred / divine
+  ["heaven", "hell", "paradise", "purgatory", "salvation", "damnation",
+   "redemption", "providence", "divine", "holy", "sacred", "profane",
+   "immortal", "eternal", "blessed", "cursed"],
+
+  // sin & virtue
+  ["sin", "virtue", "vice", "lust", "gluttony", "sloth", "envy", "avarice",
+   "chastity", "piety", "devotion", "humility", "repentance", "absolution",
+   "confession"],
+
+  // religion specific
+  ["blasphemy", "heresy", "sacrifice", "martyr", "prophet", "scripture",
+   "apocalypse", "prophecy", "miracle", "sacrament", "gospel", "pilgrim",
+   "crusade", "covenant", "testament", "incantation", "exorcism"],
+
+  // royalty & rule
+  ["king", "queen", "emperor", "empress", "knight", "noble", "peasant", "serf",
+   "vassal", "lord", "lady", "courtier", "sovereign", "throne", "crown",
+   "scepter", "dynasty", "empire", "reign", "dominion"],
+
+  // clergy / scribes
+  ["monk", "nun", "friar", "abbot", "bishop", "cardinal", "priest", "hermit",
+   "sage", "scribe", "herald", "jester"],
+
+  // war, weapons, fortifications
+  ["musket", "cavalry", "infantry", "dragoon", "regiment", "garrison",
+   "blockade", "mutiny", "insurrection", "valor", "glory", "banner", "sword",
+   "spear", "lance", "arrow", "dagger", "sabre", "fortress", "castle",
+   "dungeon", "citadel"],
+
+  // heavy emotions
+  ["anguish", "despair", "melancholy", "lamentation", "woe", "grief", "rage",
+   "fury", "wrath", "pity", "mercy", "longing", "yearning", "ardor", "fervor",
+   "contempt", "disdain", "regret", "remorse", "dishonor", "disgrace",
+   "sorrow", "terror", "dread", "awe"],
+
+  // atmospheric
+  ["twilight", "dusk", "midnight", "tempest", "wilderness", "abyss", "chasm",
+   "void", "savage", "primeval", "mystical", "forbidden", "secret", "lost",
+   "forgotten"],
+
+  // old afflictions
+  ["consumption", "smallpox", "cholera", "leprosy", "fever", "palsy", "asylum",
+   "lunacy", "swoon", "ague", "dropsy", "madness"],
+
+  // supernatural
+  ["phantom", "specter", "apparition", "oracle", "talisman", "curse", "hex",
+   "enchantress", "wizard", "sorcerer", "ghost", "sorcery", "witch", "omen",
+   "demon"],
+
+  // punishment / captivity
+  ["gallows", "scaffold", "executioner", "hangman", "prisoner", "captive",
+   "bondage", "manacle", "pillory", "chain"],
+
+  // sea & voyage
+  ["mariner", "voyager", "galleon", "frigate", "shipwreck", "lighthouse",
+   "beacon", "harbor", "anchor", "mast"],
+
+  // sacred places
+  ["cathedral", "abbey", "cloister", "monastery", "hermitage", "shrine",
+   "altar", "pulpit", "sanctuary", "temple"],
+
+  // holy war / heresy
+  ["inquisition", "heretic", "infidel", "crucifix"],
+
+  // honor & treachery
+  ["honor", "duty", "courage", "treachery", "perfidy", "loyalty", "betrayal",
+   "infamy", "bravery", "cowardice"],
+
+  // sky & portents
+  ["comet", "eclipse", "lightning", "thunder", "storm", "hurricane",
+   "blizzard"],
+
+  // body evocative
+  ["heart", "soul", "blood", "breath", "sigh", "tear", "embrace", "kiss",
+   "breast", "throat"],
+
+  // relics & objects
+  ["relic", "treasure", "jewel", "gem", "mirror", "locket", "amulet", "scroll",
+   "parchment", "quill"],
 ];
+
+function deterministicShuffle(arr, seed) {
+  const a = arr.slice();
+  let s = seed;
+  for (let i = a.length - 1; i > 0; i--) {
+    s = (s * 9301 + 49297) % 233280;
+    const j = Math.floor((s / 233280) * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+const WORDS = deterministicShuffle(CATEGORIES.flat(), 1337);
 
 const YEAR_START = 1800;
 const YEAR_END = 2019;
@@ -114,9 +149,22 @@ if (existsSync(OUT)) {
 }
 const data = existing.series;
 
+const wantSet = new Set(WORDS);
+let pruned = 0;
+for (const key of Object.keys(data)) {
+  if (!wantSet.has(key)) {
+    delete data[key];
+    pruned++;
+  }
+}
+if (pruned) console.log(`pruned ${pruned} words no longer in WORDS`);
+console.log(`target: ${WORDS.length} words; have: ${Object.keys(data).length}; need: ${WORDS.length - Object.keys(data).length}\n`);
+
 function save() {
   writeFileSync(OUT, JSON.stringify({ yearStart: YEAR_START, yearEnd: YEAR_END, series: data }));
 }
+
+save();
 
 let backoff = 2000;
 for (const word of WORDS) {
