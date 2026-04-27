@@ -296,7 +296,7 @@ async function askGemini() {
           {
             role: "user",
             content:
-              `why was "${word}" so big in ${brief.peak}?\n[trajectory by decade, 0-100 of own peak: ${brief.samples}]`,
+              `why was "${word}" so big in the ${Math.floor(brief.peak / 10) * 10}s?`,
           },
         ],
       }),
