@@ -296,7 +296,7 @@ async function askGemini() {
           {
             role: "user",
             content:
-              `why was "${word}" so big in the ${Math.floor(brief.peak / 10) * 10}s?`,
+              `why was "${word}" so big in the ${Math.floor(brief.peak / 10) * 10}s? add more details, bullet point.`,
           },
         ],
       }),
