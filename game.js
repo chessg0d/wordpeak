@@ -275,7 +275,7 @@ async function askGemini() {
           {
             role: "user",
             content:
-              `Google Books Ngram curve for "${word}" — relative book frequency from ${brief.yearStart} to ${brief.yearEnd}, normalized 0-100 to its own peak, sampled by decade:\n${brief.samples}\nPeak year: ${brief.peak}. Trough year: ${brief.trough}.\n\nTell the story this curve reveals — why the rise, the fall, the spikes, the rebounds — tying the shape to history, language, and culture. Don't just narrate the numbers; reveal what changed in the world. Make it vivid and very interesting in 8–30 sentences.`,
+              `"${word}" — book frequency by decade (0-100 of own peak):\n${brief.samples}\npeak ${brief.peak} · low ${brief.trough}\n\nWhat was happening in the world that made this word rise and fall like that?`,
           },
         ],
       }),
