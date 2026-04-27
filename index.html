@@ -36,6 +36,10 @@
         <span class="brand-mark">wordpeak</span>
         <span class="brand-tag">a curve-guessing game</span>
       </div>
+      <div class="mode-switch" role="tablist" aria-label="game mode">
+        <button class="mode-btn active" id="mode-single" type="button" role="tab" aria-selected="true">solo</button>
+        <button class="mode-btn" id="mode-duel" type="button" role="tab" aria-selected="false">duel</button>
+      </div>
       <div class="score">
         <div class="score-cell">
           <span class="score-val" id="score-correct">0</span>
@@ -57,7 +61,7 @@
         <div class="answer-text" id="answer-text"></div>
       </section>
 
-      <section class="prompt">
+      <section class="prompt" id="prompt-single">
         <div class="prompt-lead">which curve charts the word</div>
         <h1 class="target" id="target">—</h1>
         <div class="prompt-sub">
@@ -66,7 +70,31 @@
         </div>
       </section>
 
+      <section class="prompt" id="prompt-duel" hidden>
+        <div class="prompt-lead">match the curves · two words, one chart</div>
+        <h1 class="duel-title">
+          <span class="quote">“</span><em id="duel-word-a">—</em><span class="quote">”</span>
+          <span class="duel-vs">vs</span>
+          <span class="quote">“</span><em id="duel-word-b">—</em><span class="quote">”</span>
+        </h1>
+        <div class="prompt-sub">
+          which curve is <em id="duel-question-word">—</em>?
+        </div>
+      </section>
+
       <section class="grid" id="grid"></section>
+
+      <section class="duel-stage" id="duel-stage" hidden>
+        <div class="duel-card" id="duel-card"></div>
+        <div class="duel-picker">
+          <button class="duel-pick" id="duel-pick-a" type="button">
+            <span class="duel-letter">A</span>
+          </button>
+          <button class="duel-pick" id="duel-pick-b" type="button">
+            <span class="duel-letter">B</span>
+          </button>
+        </div>
+      </section>
 
       <section class="controls">
         <div class="result" id="result" aria-live="polite"></div>

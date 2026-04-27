@@ -16,6 +16,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   margin: 0;
@@ -526,6 +530,220 @@ body::before {
 .answer-text.error {
   color: var(--wrong);
   font-style: italic;
+}
+
+.mode-switch {
+  display: inline-flex;
+  background: rgba(26, 22, 18, 0.04);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 3px;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+.mode-btn {
+  background: transparent;
+  border: none;
+  color: var(--ink-muted);
+  padding: 6px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.mode-btn:hover {
+  color: var(--ink);
+}
+
+.mode-btn.active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* DUEL MODE */
+
+.duel-title {
+  font-size: clamp(34px, 5.5vw, 64px);
+  font-weight: 600;
+  line-height: 1.05;
+  margin: 12px 0 14px;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 18px;
+  justify-content: center;
+  align-items: baseline;
+}
+
+.duel-title em {
+  font-style: italic;
+  font-weight: 600;
+}
+
+.duel-title .quote {
+  color: var(--accent);
+  font-style: normal;
+  font-weight: 400;
+}
+
+.duel-vs {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  color: var(--ink-muted);
+  font-style: normal;
+  align-self: center;
+  padding: 0 4px;
+}
+
+#prompt-duel .prompt-sub em {
+  text-transform: lowercase;
+  font-family: "Fraunces", serif;
+  letter-spacing: 0;
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 600;
+  font-style: italic;
+}
+
+.duel-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.duel-card {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 22px 26px 16px;
+  box-shadow: var(--shadow);
+  position: relative;
+}
+
+.duel-card .card-chart {
+  width: 100%;
+  aspect-ratio: 16 / 6;
+  display: block;
+}
+
+.duel-card .grid-line {
+  stroke: rgba(26, 22, 18, 0.08);
+  stroke-width: 0.5;
+}
+
+.duel-card .axis {
+  stroke: var(--ink-soft);
+  stroke-width: 0.8;
+}
+
+.duel-card .duel-curve-a {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.duel-card .duel-curve-b {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.duel-card .duel-label {
+  font-family: "Fraunces", serif;
+  font-size: 22px;
+  font-weight: 800;
+  font-style: normal;
+}
+
+.duel-card .duel-label.a { fill: var(--ink); }
+.duel-card .duel-label.b { fill: var(--accent); }
+
+.duel-card .duel-tag {
+  font-family: "Fraunces", serif;
+  font-size: 16px;
+  font-weight: 600;
+  font-style: italic;
+  opacity: 0;
+  transition: opacity 320ms ease;
+}
+
+.duel-card.revealed .duel-tag { opacity: 1; }
+
+.duel-card .duel-tag.a { fill: var(--ink); }
+.duel-card .duel-tag.b { fill: var(--accent); }
+
+.duel-card .chart-axis {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 2px 0;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--ink-muted);
+}
+
+.duel-picker {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+}
+
+.duel-pick {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 1.5px solid var(--rule);
+  background: var(--card);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 140ms ease, border-color 160ms ease, background 160ms ease;
+  box-shadow: var(--shadow);
+}
+
+.duel-pick:first-child .duel-letter { color: var(--ink); }
+.duel-pick:last-child .duel-letter  { color: var(--accent); }
+
+.duel-pick:hover:not(:disabled) {
+  transform: translateY(-3px);
+  border-color: var(--ink-soft);
+}
+
+.duel-pick:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.duel-letter {
+  font-family: "Fraunces", serif;
+  font-size: 38px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.duel-pick.locked.correct {
+  border-color: var(--correct);
+  background: #f1f6ec;
+  opacity: 1;
+}
+
+.duel-pick.locked.wrong {
+  border-color: var(--wrong);
+  background: #f6ecea;
+  opacity: 1;
 }
 
 .ftr {

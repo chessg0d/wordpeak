@@ -10,10 +10,30 @@ const API_URL = "https://wordpeak-api.towsonerik.workers.dev/";
 const state = {
   data: null,
   words: [],
+  mode: "single", // "single" | "duel"
   round: null,
   score: { correct: 0, total: 0, streak: 0 },
   answer: { abort: null },
 };
+
+// Curated duel pairs — natural antonyms / contrasts / siblings.
+// At runtime we filter to pairs where both words exist in the data.
+const DUEL_PAIRS = [
+  ["heaven", "hell"], ["divine", "profane"], ["holy", "cursed"],
+  ["blessed", "damned"], ["sin", "virtue"], ["mercy", "wrath"],
+  ["glory", "disgrace"], ["honor", "treachery"], ["bravery", "cowardice"],
+  ["loyalty", "betrayal"], ["prophet", "heretic"], ["knight", "peasant"],
+  ["king", "serf"], ["emperor", "vassal"], ["crown", "chain"],
+  ["musket", "sword"], ["gallows", "sanctuary"], ["consumption", "cholera"],
+  ["comet", "eclipse"], ["pestilence", "salvation"], ["paradise", "purgatory"],
+  ["redemption", "damnation"], ["sage", "jester"], ["monk", "knight"],
+  ["fortress", "hermitage"], ["cathedral", "dungeon"], ["heart", "soul"],
+  ["sword", "quill"], ["valor", "infamy"], ["repentance", "blasphemy"],
+  ["ardor", "contempt"], ["awe", "dread"], ["mariner", "pilgrim"],
+  ["regiment", "garrison"], ["wizard", "witch"], ["phantom", "specter"],
+  ["dagger", "lance"], ["plague", "miracle"], ["confession", "heresy"],
+  ["throne", "scaffold"], ["dynasty", "ruin"], ["devotion", "lust"],
+];
 
 async function loadData() {
   const res = await fetch("./data.json");
@@ -130,12 +150,91 @@ function buildChartSVG(series) {
   `;
 }
 
+function buildDuelChartSVG(seriesA, seriesB, opts = {}) {
+  const W = 800, H = 300;
+  const pl = 30, pr = opts.revealed ? 130 : 30, pt = 18, pb = 10;
+  const innerW = W - pl - pr;
+  const innerH = H - pt - pb;
+  const n = seriesA.length;
+
+  // Per-curve normalization — each fills [0,1] of its own peak. Magnitude
+  // differences would otherwise leak the answer (e.g. "the bigger one is
+  // the famous word"). Forces the puzzle to be pure shape matching.
+  const maxA = Math.max(...seriesA) || 1;
+  const maxB = Math.max(...seriesB) || 1;
+  const xAt = (i) => pl + (i / (n - 1)) * innerW;
+  const yAtFor = (max) => (v) => pt + innerH - (v / max) * innerH;
+
+  const pathFor = (s, max) => {
+    const yAt = yAtFor(max);
+    let d = "";
+    for (let i = 0; i < n; i++) {
+      d += (i === 0 ? "M " : "L ") + xAt(i).toFixed(2) + " " + yAt(s[i]).toFixed(2) + " ";
+    }
+    return d;
+  };
+
+  const grid = [0.25, 0.5, 0.75]
+    .map((f) => {
+      const y = pt + innerH - f * innerH;
+      return `<line class="grid-line" x1="${pl}" x2="${pl + innerW}" y1="${y}" y2="${y}" />`;
+    })
+    .join("");
+
+  // End-of-line letter labels (or word tags after reveal)
+  const aEndIdx = n - 1, bEndIdx = n - 1;
+  const aLabelY = yAtFor(maxA)(seriesA[aEndIdx]);
+  const bLabelY = yAtFor(maxB)(seriesB[bEndIdx]);
+  const minGap = 16;
+  let aY = aLabelY, bY = bLabelY;
+  if (Math.abs(aY - bY) < minGap) {
+    if (aY < bY) { aY -= minGap / 2; bY += minGap / 2; }
+    else         { aY += minGap / 2; bY -= minGap / 2; }
+  }
+  const labelX = pl + innerW + 4;
+
+  const tagA = opts.revealed ? `<text class="duel-tag a" x="${labelX}" y="${aY + 18}" text-anchor="start">${opts.wordA}</text>` : "";
+  const tagB = opts.revealed ? `<text class="duel-tag b" x="${labelX}" y="${bY + 18}" text-anchor="start">${opts.wordB}</text>` : "";
+
+  return `
+    <svg class="card-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+      ${grid}
+      <line class="axis" x1="${pl}" x2="${pl + innerW}" y1="${pt + innerH}" y2="${pt + innerH}" />
+      <line class="axis" x1="${pl}" x2="${pl}" y1="${pt}" y2="${pt + innerH}" />
+      <path class="duel-curve-a" d="${pathFor(seriesA, maxA)}" />
+      <path class="duel-curve-b" d="${pathFor(seriesB, maxB)}" />
+      <text class="duel-label a" x="${labelX}" y="${aY + 6}" text-anchor="start">A</text>
+      <text class="duel-label b" x="${labelX}" y="${bY + 6}" text-anchor="start">B</text>
+      ${tagA}${tagB}
+    </svg>
+    <div class="chart-axis">
+      <span>${state.data.yearStart}</span>
+      <span>1850</span>
+      <span>1900</span>
+      <span>1950</span>
+      <span>${state.data.yearEnd}</span>
+    </div>
+  `;
+}
+
+function pickDuelPair() {
+  // Prefer curated pairs whose words are both in the data; fall back to random.
+  const valid = DUEL_PAIRS.filter(([a, b]) => state.data.series[a] && state.data.series[b]);
+  if (valid.length && Math.random() < 0.8) {
+    return valid[Math.floor(Math.random() * valid.length)];
+  }
+  return sample(state.words, 2);
+}
+
 function newRound() {
+  if (state.mode === "duel") return newDuelRound();
+
   const target = sample(state.words, 1)[0];
   const decoys = sample(state.words, 3, new Set([target]));
   const all = shuffle([target, ...decoys]);
 
   state.round = {
+    mode: "single",
     target,
     options: all,
     targetIndex: all.indexOf(target),
@@ -144,6 +243,112 @@ function newRound() {
   };
 
   renderRound();
+}
+
+function newDuelRound() {
+  const [w1, w2] = pickDuelPair();
+  // Randomly assign which word maps to curve A vs curve B.
+  const aFirst = Math.random() < 0.5;
+  const wordA = aFirst ? w1 : w2;
+  const wordB = aFirst ? w2 : w1;
+  // Question word is randomly picked from the pair.
+  const askWhich = Math.random() < 0.5 ? "A" : "B";
+  const questionWord = askWhich === "A" ? wordA : wordB;
+  const correctLetter = askWhich; // by construction
+
+  state.round = {
+    mode: "duel",
+    wordA,
+    wordB,
+    questionWord,
+    correctLetter,
+    locked: false,
+    pick: null,
+  };
+
+  renderDuelRound();
+}
+
+function renderDuelRound() {
+  const r = state.round;
+  document.getElementById("duel-word-a").textContent = r.wordA;
+  document.getElementById("duel-word-b").textContent = r.wordB;
+  document.getElementById("duel-question-word").textContent = r.questionWord;
+
+  const card = document.getElementById("duel-card");
+  card.classList.remove("revealed");
+  card.innerHTML = buildDuelChartSVG(
+    state.data.series[r.wordA],
+    state.data.series[r.wordB],
+    { revealed: false }
+  );
+
+  const pickA = document.getElementById("duel-pick-a");
+  const pickB = document.getElementById("duel-pick-b");
+  for (const btn of [pickA, pickB]) {
+    btn.disabled = false;
+    btn.classList.remove("locked", "correct", "wrong");
+  }
+
+  const result = document.getElementById("result");
+  result.innerHTML = "";
+  document.getElementById("next-btn").hidden = true;
+  document.getElementById("ask-gemini").hidden = true;
+  closeAnswer();
+}
+
+function onDuelPick(letter) {
+  const r = state.round;
+  if (!r || r.locked) return;
+  r.locked = true;
+  r.pick = letter;
+
+  const correct = letter === r.correctLetter;
+  state.score.total++;
+  if (correct) {
+    state.score.correct++;
+    state.score.streak++;
+  } else {
+    state.score.streak = 0;
+  }
+
+  // Re-render chart with reveal tags
+  const card = document.getElementById("duel-card");
+  card.classList.add("revealed");
+  card.innerHTML = buildDuelChartSVG(
+    state.data.series[r.wordA],
+    state.data.series[r.wordB],
+    { revealed: true, wordA: r.wordA, wordB: r.wordB }
+  );
+
+  const pickA = document.getElementById("duel-pick-a");
+  const pickB = document.getElementById("duel-pick-b");
+  for (const btn of [pickA, pickB]) {
+    btn.disabled = true;
+    btn.classList.add("locked");
+  }
+  const picked = letter === "A" ? pickA : pickB;
+  picked.classList.add(correct ? "correct" : "wrong");
+  if (!correct) {
+    const truth = r.correctLetter === "A" ? pickA : pickB;
+    truth.classList.add("correct");
+  }
+
+  const result = document.getElementById("result");
+  if (correct) {
+    result.innerHTML = `<span class="accent-correct">Right.</span> Curve ${letter} is <em>${r.questionWord}</em>.`;
+  } else {
+    const otherWord = r.questionWord === r.wordA ? r.wordB : r.wordA;
+    result.innerHTML = `<span class="accent-wrong">Nope.</span> Curve ${letter} was <em>${otherWord}</em>; <em>${r.questionWord}</em> was ${r.correctLetter}.`;
+  }
+
+  document.getElementById("score-correct").textContent = state.score.correct;
+  document.getElementById("score-total").textContent = state.score.total;
+  document.getElementById("score-streak").textContent = state.score.streak;
+
+  document.getElementById("next-btn").hidden = false;
+  document.getElementById("next-btn").focus();
+  document.getElementById("ask-gemini").hidden = false;
 }
 
 function renderRound() {
@@ -269,11 +474,24 @@ function closeAnswer() {
   document.getElementById("answer-text").classList.remove("streaming", "error");
 }
 
+function buildAskPrompt() {
+  const r = state.round;
+  if (r.mode === "duel") {
+    const briefA = buildCurveBrief(state.data.series[r.wordA]);
+    const briefB = buildCurveBrief(state.data.series[r.wordB]);
+    return `compare the ngram curves of "${r.wordA}" and "${r.wordB}" — why do they look the way they do?
+"${r.wordA}" — peak ${Math.floor(briefA.peak / 10) * 10}s · by decade, 0-100 of own peak: ${briefA.samples}
+"${r.wordB}" — peak ${Math.floor(briefB.peak / 10) * 10}s · by decade, 0-100 of own peak: ${briefB.samples}
+explain the historical relationship between the two — when did one rise as the other fell? did they trade places? what does the contrast reveal? bullet points welcome.`;
+  }
+  const word = r.target;
+  const brief = buildCurveBrief(state.data.series[word]);
+  return `why does ngram viewer of "${word}" look like this?\n(peak ${Math.floor(brief.peak / 10) * 10}s · trajectory by decade, 0-100 of own peak: ${brief.samples})\nadd more details, bullet point. what does the evolution of the chart show about the human condition?`;
+}
+
 async function askGemini() {
   if (!state.round) return;
   closeAnswer();
-  const word = state.round.target;
-  const brief = buildCurveBrief(state.data.series[word]);
   const panel = document.getElementById("answer");
   const textEl = document.getElementById("answer-text");
   panel.hidden = false;
@@ -292,13 +510,7 @@ async function askGemini() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        messages: [
-          {
-            role: "user",
-            content:
-              `why does ngram viewer of "${word}" look like this?\n(peak ${Math.floor(brief.peak / 10) * 10}s · trajectory by decade, 0-100 of own peak: ${brief.samples})\nadd more details, bullet point. what does the evolution of the chart show about the human condition?`,
-          },
-        ],
+        messages: [{ role: "user", content: buildAskPrompt() }],
       }),
       signal: ctrl.signal,
     });
@@ -341,16 +553,44 @@ async function askGemini() {
   }
 }
 
+function setMode(mode) {
+  if (mode !== "single" && mode !== "duel") return;
+  state.mode = mode;
+  document.getElementById("mode-single").classList.toggle("active", mode === "single");
+  document.getElementById("mode-duel").classList.toggle("active", mode === "duel");
+  document.getElementById("mode-single").setAttribute("aria-selected", mode === "single");
+  document.getElementById("mode-duel").setAttribute("aria-selected", mode === "duel");
+
+  document.getElementById("prompt-single").hidden = mode !== "single";
+  document.getElementById("prompt-duel").hidden = mode !== "duel";
+  document.getElementById("grid").hidden = mode !== "single";
+  document.getElementById("duel-stage").hidden = mode !== "duel";
+
+  closeAnswer();
+  newRound();
+}
+
 async function main() {
   await loadData();
   document.getElementById("next-btn").addEventListener("click", newRound);
   document.getElementById("ask-gemini").addEventListener("click", askGemini);
+  document.getElementById("mode-single").addEventListener("click", () => setMode("single"));
+  document.getElementById("mode-duel").addEventListener("click", () => setMode("duel"));
+  document.getElementById("duel-pick-a").addEventListener("click", () => onDuelPick("A"));
+  document.getElementById("duel-pick-b").addEventListener("click", () => onDuelPick("B"));
 
   document.addEventListener("keydown", (e) => {
     if (state.round?.locked && (e.key === "Enter" || e.key === " ")) {
       e.preventDefault();
       newRound();
-    } else if (!state.round?.locked) {
+      return;
+    }
+    if (state.mode === "duel" && !state.round?.locked) {
+      if (e.key.toLowerCase() === "a") onDuelPick("A");
+      if (e.key.toLowerCase() === "b") onDuelPick("B");
+      return;
+    }
+    if (state.mode === "single" && !state.round?.locked) {
       const map = { "1": 0, "2": 1, "3": 2, "4": 3, a: 0, b: 1, c: 2, d: 3 };
       const idx = map[e.key.toLowerCase()];
       if (idx !== undefined) onPick(idx);
