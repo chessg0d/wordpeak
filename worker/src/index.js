@@ -5,7 +5,7 @@ const ALLOWED_ORIGINS = new Set([
   "http://localhost:8000",
 ]);
 
-const MODEL = "gemini-3-flash-preview";
+const MODEL = "gemini-2.5-flash";
 
 function corsHeaders(origin) {
   const allow = ALLOWED_ORIGINS.has(origin) ? origin : "https://wordpeak.app";
@@ -75,7 +75,7 @@ export default {
         temperature: 0.7,
         maxOutputTokens: 2400,
         thinkingConfig: {
-          thinkingLevel: "high",
+          thinkingBudget: -1,
           includeThoughts: false,
         },
       },
