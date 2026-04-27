@@ -296,7 +296,7 @@ async function askGemini() {
           {
             role: "user",
             content:
-              `"${word}" — book frequency by decade (0-100 of own peak):\n${brief.samples}\npeak ${brief.peak} · low ${brief.trough}\n\nWhat was happening in the world that made this word rise and fall like that?`,
+              `why was "${word}" so big in ${brief.peak}?\n[trajectory by decade, 0-100 of own peak: ${brief.samples}]`,
           },
         ],
       }),
