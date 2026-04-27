@@ -296,7 +296,7 @@ async function askGemini() {
           {
             role: "user",
             content:
-              `why was "${word}" so big in the ${Math.floor(brief.peak / 10) * 10}s? add more details, bullet point. what does the evolution of the chart show about the human condition?`,
+              `why does ngram viewer of "${word}" look like this? add more details, bullet point. what does the evolution of the chart show about the human condition?`,
           },
         ],
       }),

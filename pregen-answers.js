@@ -45,8 +45,7 @@ function save() {
 }
 
 async function generate(word) {
-  const decade = peakDecade(data.series[word]);
-  const userMsg = `why was "${word}" so big in the ${decade}s?`;
+  const userMsg = `why does ngram viewer of "${word}" look like this? add more details, bullet point. what does the evolution of the chart show about the human condition?`;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
   const res = await fetch(url, {
@@ -78,7 +77,7 @@ async function generate(word) {
   if (!Array.isArray(parts)) throw new Error("no parts in response");
   const text = parts.filter((p) => !p.thought).map((p) => p.text).join("").trim();
   if (!text) throw new Error("empty text in response");
-  return { word, decade, peakYear: peakDecade(data.series[word]), text };
+  return { word, peakYear: peakDecade(data.series[word]), text };
 }
 
 const todo = words.filter((w) => !answers[w]);
