@@ -73,7 +73,7 @@ export default {
       })),
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 2400,
+        maxOutputTokens: 5000,
         thinkingConfig: {
           thinkingBudget: -1,
           includeThoughts: false,
