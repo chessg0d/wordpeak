@@ -333,7 +333,7 @@ async function askGemini() {
   } catch (e) {
     if (e.name === "AbortError") return;
     textEl.classList.add("error");
-    textEl.textContent = `Couldn't reach Gemini: ${e.message}`;
+    textEl.textContent = `Couldn't reach the AI: ${e.message}`;
   } finally {
     textEl.classList.remove("streaming");
     state.answer.abort = null;

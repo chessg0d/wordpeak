@@ -5,7 +5,7 @@ const ALLOWED_ORIGINS = new Set([
   "http://localhost:8000",
 ]);
 
-const MODEL = "deepseek-chat";
+const MODEL = "openai/gpt-oss-120b";
 
 function corsHeaders(origin) {
   const allow = ALLOWED_ORIGINS.has(origin) ? origin : "https://wordpeak.app";
@@ -24,6 +24,9 @@ function jsonErr(status, message, origin) {
     headers: { ...corsHeaders(origin), "Content-Type": "application/json" },
   });
 }
+
+const SYSTEM_PROMPT =
+  "You're a sharp historian. The user will ask why a word was big in some decade between 1800 and 2019. Answer with a short, punchy take rooted in the actual events, fears, ideas, and moods of that decade — what was happening that put the word on people's tongues. Never make books, newspapers, papers, the press, editors, novelists, journalists, the printing press, or 'the literature of the time' the subject — those are measurement, never characters in your answer. Stick to real, verifiable history: real wars, real laws, real people, real movements. Don't invent fictional characters, anonymous townsfolk, or made-up scenes; if you can't be specific, be general but truthful. Open mid-thought with a concrete real moment or person. No headings, no sections, no bullet lists, no 'Punch:' labels, no summary tables. Skip throat-clearing: never 'tells a fascinating tale,' 'the journey of,' 'captures the essence,' 'at the dawn of,' 'reflects a century defined by.' One flowing piece of prose, 4-8 sentences, smart-friend-at-a-bar voice, surprising real specifics, a take. *Italics* on the word, **bold** rarely on a key name. Never include <think> tags.";
 
 export default {
   async fetch(request, env) {
@@ -59,30 +62,24 @@ export default {
       }
     }
 
-    const systemMsg = {
-      role: "system",
-      content:
-        "You're a sharp historian. The user will ask why a word was big in some decade between 1800 and 2019. Answer with a short, punchy take rooted in the actual events, fears, ideas, and moods of that decade — what was happening that put the word on people's tongues. Never make books, newspapers, papers, the press, editors, novelists, journalists, the printing press, or 'the literature of the time' the subject — those are measurement, never characters in your answer. Stick to real, verifiable history: real wars, real laws, real people, real movements. Don't invent fictional characters, anonymous townsfolk, or made-up scenes; if you can't be specific, be general but truthful. Open mid-thought with a concrete real moment or person. No headings, no sections, no bullet lists, no 'Punch:' labels, no summary tables. Skip throat-clearing: never 'tells a fascinating tale,' 'the journey of,' 'captures the essence,' 'at the dawn of,' 'reflects a century defined by.' One flowing piece of prose, 4-8 sentences, smart-friend-at-a-bar voice, surprising real specifics, a take. *Italics* on the word, **bold** rarely on a key name. Never include <think> tags.",
-    };
-
-    const upstream = await fetch("https://api.deepseek.com/v1/chat/completions", {
+    const upstream = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${env.DEEPSEEK_API_KEY}`,
+        "Authorization": `Bearer ${env.GROQ_API_KEY}`,
       },
       body: JSON.stringify({
         model: MODEL,
         stream: true,
         temperature: 0.7,
         max_tokens: 1200,
-        messages: [systemMsg, ...messages],
+        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
       }),
     });
 
     if (!upstream.ok) {
       const errText = await upstream.text();
-      return jsonErr(upstream.status, `deepseek: ${errText.slice(0, 500)}`, origin);
+      return jsonErr(upstream.status, `groq: ${errText.slice(0, 500)}`, origin);
     }
 
     let buffer = "";
