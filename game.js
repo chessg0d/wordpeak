@@ -1,4 +1,4 @@
-import { IMPOSTER_PACKS, JOURNEY_DECADES, STARTING_LIVES } from "./imposter-packs.js";
+import { IMPOSTER_PACKS, JOURNEY_DECADES, STARTING_LIVES } from "./imposter-packs.js?v=restore2";
 
 const CHART_W = 400;
 const CHART_H = 200;
