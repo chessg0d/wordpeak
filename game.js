@@ -1,4 +1,4 @@
-import { IMPOSTER_PACKS } from "./imposter-packs.js";
+import { IMPOSTER_PACKS, JOURNEY_DECADES, STARTING_LIVES } from "./imposter-packs.js";
 
 const CHART_W = 400;
 const CHART_H = 200;
@@ -22,7 +22,11 @@ function persistSave() {
   try {
     localStorage.setItem(
       SAVE_KEY,
-      JSON.stringify({ best: state.score.best })
+      JSON.stringify({
+        best: state.score.best,
+        bestRunScore: state.run.bestRunScore,
+        bestRunDecade: state.run.bestRunDecade,
+      })
     );
   } catch {
     // localStorage unavailable — silently skip
@@ -37,12 +41,34 @@ const state = {
   mode: "single", // "single" | "duel" | "imposter"
   round: null,
   score: { points: 0, streak: 0, best: saved.best ?? 0 },
+  run: {
+    active: false,
+    decade: JOURNEY_DECADES[0],
+    lives: STARTING_LIVES,
+    score: 0,
+    streak: 0,
+    won: null,
+    bestRunScore: saved.bestRunScore ?? 0,
+    bestRunDecade: saved.bestRunDecade ?? 0,
+  },
   answer: { abort: null },
 };
 
+function startNewRun() {
+  state.run.active = true;
+  state.run.decade = JOURNEY_DECADES[0];
+  state.run.lives = STARTING_LIVES;
+  state.run.score = 0;
+  state.run.streak = 0;
+  state.run.won = null;
+}
+
 function pointsForCorrect() {
-  // 100 base + 25 per current streak point, capped at +250 bonus
   return 100 + Math.min(state.score.streak, 10) * 25;
+}
+
+function pointsForRunCorrect() {
+  return 100 + Math.min(state.run.streak, 10) * 25;
 }
 
 function awardCorrect(anchorEl) {
@@ -66,11 +92,54 @@ function awardWrong(anchorEl) {
   }
 }
 
+function awardRunCorrect(anchorEl) {
+  const gained = pointsForRunCorrect();
+  state.run.streak += 1;
+  state.run.score += gained;
+  if (anchorEl) popPoints(anchorEl, `+${gained}`, "plus");
+}
+
+function awardRunWrong(anchorEl) {
+  state.run.streak = 0;
+  state.run.lives -= 1;
+  if (anchorEl) popPoints(anchorEl, "−1 life", "minus");
+}
+
 function updateScoreUI() {
-  document.getElementById("score-points").textContent = state.score.points;
-  document.getElementById("score-streak").textContent = state.score.streak;
-  document.getElementById("score-best").textContent = state.score.best;
-  document.getElementById("streak-fire").hidden = state.score.streak < 3;
+  if (state.mode === "imposter") {
+    document.getElementById("score-points").textContent = state.run.score;
+    document.getElementById("score-points-lbl").textContent = "score";
+
+    const streakEl = document.getElementById("score-streak");
+    streakEl.innerHTML = renderHearts(state.run.lives, STARTING_LIVES);
+    document.getElementById("score-streak-lbl").textContent = "lives";
+    document.getElementById("streak-fire").hidden = true;
+
+    document.getElementById("score-best").textContent = state.run.bestRunScore;
+    document.getElementById("score-best-lbl").textContent = "best run";
+  } else {
+    document.getElementById("score-points").textContent = state.score.points;
+    document.getElementById("score-points-lbl").textContent = "score";
+
+    document.getElementById("score-streak").textContent = state.score.streak;
+    document.getElementById("score-streak-lbl").textContent = "streak";
+    document.getElementById("streak-fire").hidden = state.score.streak < 3;
+
+    document.getElementById("score-best").textContent = state.score.best;
+    document.getElementById("score-best-lbl").textContent = "best";
+  }
+}
+
+function renderHearts(lives, total) {
+  let html = "";
+  for (let i = 0; i < total; i++) {
+    if (i < lives) {
+      html += '<span class="heart">♥</span>';
+    } else {
+      html += '<span class="heart heart-empty">♡</span>';
+    }
+  }
+  return html;
 }
 
 function popPoints(anchorEl, text, sign) {
@@ -329,11 +398,25 @@ function pickN(arr, n) {
 }
 
 function newImposterRound() {
-  // Pick a pack different from the previous round when possible.
-  const available = state.round?.mode === "imposter" && IMPOSTER_PACKS.length > 1
-    ? IMPOSTER_PACKS.filter((p) => p.id !== state.round.pack.id)
-    : IMPOSTER_PACKS;
-  const pack = available[Math.floor(Math.random() * available.length)];
+  // Start a fresh run if none is active.
+  if (!state.run.active) {
+    startNewRun();
+  }
+
+  // Pick a pack matching the player's current decade. Prefer a pack different
+  // from the previous round when there are alternatives.
+  const candidates = IMPOSTER_PACKS.filter((p) => p.decade === state.run.decade);
+  if (candidates.length === 0) {
+    console.warn(`No pack for decade ${state.run.decade}; treating as cleared.`);
+    return endRun(true);
+  }
+  let pack = candidates[Math.floor(Math.random() * candidates.length)];
+  if (state.round?.pack && candidates.length > 1) {
+    let attempts = 0;
+    while (pack.id === state.round.pack.id && attempts++ < 10) {
+      pack = candidates[Math.floor(Math.random() * candidates.length)];
+    }
+  }
 
   const natives = pickN(pack.natives, 4).map((n) => ({ ...n, isImposter: false }));
   const imposter = pickN(pack.imposters, 1)[0];
@@ -372,9 +455,12 @@ function renderImposterRound() {
   });
 
   document.getElementById("result").innerHTML = "";
-  document.getElementById("next-btn").hidden = true;
+  const nextBtn = document.getElementById("next-btn");
+  nextBtn.hidden = true;
+  nextBtn.textContent = "next decade →";
   document.getElementById("ask-gemini").hidden = true;
   closeAnswer();
+  updateScoreUI();
 }
 
 function onImposterPick(index) {
@@ -400,8 +486,9 @@ function onImposterPick(index) {
   });
 
   const pickedEl = cards[index];
-  if (correct) awardCorrect(pickedEl);
-  else awardWrong(pickedEl);
+  if (correct) awardRunCorrect(pickedEl);
+  else awardRunWrong(pickedEl);
+  updateScoreUI();
 
   const imposterCard = r.cards[r.imposterIndex];
   const result = document.getElementById("result");
@@ -412,8 +499,51 @@ function onImposterPick(index) {
     result.innerHTML = `<span class="accent-wrong">Fooled.</span> <em>${pickedCard.name}</em> belonged. The imposter was <em>${imposterCard.name}</em> — ${imposterCard.note}.`;
   }
 
-  document.getElementById("next-btn").hidden = false;
-  document.getElementById("next-btn").focus();
+  // Determine if the run continues.
+  const idx = JOURNEY_DECADES.indexOf(state.run.decade);
+  const isLastDecade = idx + 1 >= JOURNEY_DECADES.length;
+  const outOfLives = state.run.lives <= 0;
+  const nextBtn = document.getElementById("next-btn");
+
+  if (outOfLives || isLastDecade) {
+    endRun(!outOfLives, result);
+    nextBtn.textContent = "try again →";
+  } else {
+    state.run.decade = JOURNEY_DECADES[idx + 1];
+    nextBtn.textContent = "next decade →";
+  }
+
+  nextBtn.hidden = false;
+  nextBtn.focus();
+}
+
+function endRun(won, resultEl) {
+  state.run.active = false;
+  state.run.won = won;
+  if (state.run.score > state.run.bestRunScore) {
+    state.run.bestRunScore = state.run.score;
+  }
+  if (state.run.decade > state.run.bestRunDecade) {
+    state.run.bestRunDecade = state.run.decade;
+  }
+  persistSave();
+  updateScoreUI();
+
+  if (!resultEl) return;
+  const summary = document.createElement("div");
+  summary.className = "run-summary";
+  if (won) {
+    summary.innerHTML = `
+      <div class="run-summary-title">You made it to 2020.</div>
+      <div class="run-summary-detail">final: <strong>${state.run.score}</strong> points · ${state.run.lives} ♥ left · best run ever: <strong>${state.run.bestRunScore}</strong></div>
+    `;
+  } else {
+    summary.innerHTML = `
+      <div class="run-summary-title">Game over — died at the ${state.run.decade}s.</div>
+      <div class="run-summary-detail">final: <strong>${state.run.score}</strong> points · best run ever: <strong>${state.run.bestRunScore}</strong></div>
+    `;
+  }
+  resultEl.appendChild(summary);
 }
 
 function newDuelRound() {
@@ -733,6 +863,7 @@ function setMode(mode) {
   document.getElementById("ask-gemini").hidden = true;
 
   closeAnswer();
+  updateScoreUI();
   newRound();
 }
 

@@ -946,6 +946,66 @@ body::before {
   font-weight: 600;
 }
 
+/* HEARTS / LIVES */
+
+.heart {
+  display: inline-block;
+  color: var(--accent);
+  font-size: 18px;
+  line-height: 1;
+  margin: 0 1px;
+  filter: drop-shadow(0 0 3px rgba(181, 68, 39, 0.35));
+  animation: heart-pulse 2.4s ease-in-out infinite;
+}
+
+.heart-empty {
+  color: rgba(26, 22, 18, 0.18);
+  filter: none;
+  animation: none;
+}
+
+@keyframes heart-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.08); }
+}
+
+/* RUN SUMMARY (end-of-run card) */
+
+.run-summary {
+  margin-top: 14px;
+  padding: 16px 22px;
+  border: 1px solid var(--ink-soft);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(26, 22, 18, 0.04) 0%, rgba(26, 22, 18, 0.02) 100%);
+  font-family: "Fraunces", serif;
+  animation: summary-rise 320ms ease;
+}
+
+@keyframes summary-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.run-summary-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+}
+
+.run-summary-detail {
+  font-size: 14px;
+  font-style: italic;
+  color: var(--ink-soft);
+  letter-spacing: 0.01em;
+}
+
+.run-summary-detail strong {
+  font-style: normal;
+  color: var(--ink);
+  font-weight: 700;
+}
+
 .ftr {
   border-top: 1px solid var(--rule);
   padding-top: 12px;
