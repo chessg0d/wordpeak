@@ -39,19 +39,22 @@
       <div class="mode-switch" role="tablist" aria-label="game mode">
         <button class="mode-btn active" id="mode-single" type="button" role="tab" aria-selected="true">solo</button>
         <button class="mode-btn" id="mode-duel" type="button" role="tab" aria-selected="false">duel</button>
+        <button class="mode-btn" id="mode-imposter" type="button" role="tab" aria-selected="false">imposter</button>
       </div>
       <div class="score">
         <div class="score-cell">
-          <span class="score-val" id="score-correct">0</span>
-          <span class="score-lbl">correct</span>
+          <span class="score-val" id="score-points">0</span>
+          <span class="score-lbl">score</span>
         </div>
         <div class="score-cell">
-          <span class="score-val" id="score-total">0</span>
-          <span class="score-lbl">rounds</span>
-        </div>
-        <div class="score-cell">
-          <span class="score-val" id="score-streak">0</span>
+          <span class="score-val">
+            <span id="score-streak">0</span><span class="streak-fire" id="streak-fire" hidden></span>
+          </span>
           <span class="score-lbl">streak</span>
+        </div>
+        <div class="score-cell">
+          <span class="score-val" id="score-best">0</span>
+          <span class="score-lbl">best</span>
         </div>
       </div>
     </header>
@@ -94,6 +97,16 @@
             <span class="duel-letter">B</span>
           </button>
         </div>
+      </section>
+
+      <section class="prompt" id="prompt-imposter" hidden>
+        <div class="prompt-lead">spot the imposter</div>
+        <h1 class="imposter-title" id="imposter-title">—</h1>
+        <div class="prompt-sub">four belong · one is from a different era</div>
+      </section>
+
+      <section class="imposter-stage" id="imposter-stage" hidden>
+        <div class="imp-grid" id="imp-grid"></div>
       </section>
 
       <section class="controls">

@@ -1,3 +1,5 @@
+import { IMPOSTER_PACKS } from "./imposter-packs.js";
+
 const CHART_W = 400;
 const CHART_H = 200;
 const PAD_L = 24;
@@ -6,15 +8,84 @@ const PAD_T = 12;
 const PAD_B = 8;
 
 const API_URL = "https://wordpeak-api.towsonerik.workers.dev/";
+const SAVE_KEY = "wordpeak.v2";
+
+function loadSave() {
+  try {
+    return JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function persistSave() {
+  try {
+    localStorage.setItem(
+      SAVE_KEY,
+      JSON.stringify({ best: state.score.best })
+    );
+  } catch {
+    // localStorage unavailable — silently skip
+  }
+}
+
+const saved = loadSave();
 
 const state = {
   data: null,
   words: [],
-  mode: "single", // "single" | "duel"
+  mode: "single", // "single" | "duel" | "imposter"
   round: null,
-  score: { correct: 0, total: 0, streak: 0 },
+  score: { points: 0, streak: 0, best: saved.best ?? 0 },
   answer: { abort: null },
 };
+
+function pointsForCorrect() {
+  // 100 base + 25 per current streak point, capped at +250 bonus
+  return 100 + Math.min(state.score.streak, 10) * 25;
+}
+
+function awardCorrect(anchorEl) {
+  const gained = pointsForCorrect();
+  state.score.streak += 1;
+  state.score.points += gained;
+  if (state.score.points > state.score.best) {
+    state.score.best = state.score.points;
+    persistSave();
+  }
+  updateScoreUI();
+  if (anchorEl) popPoints(anchorEl, `+${gained}`, "plus");
+}
+
+function awardWrong(anchorEl) {
+  const lostStreak = state.score.streak;
+  state.score.streak = 0;
+  updateScoreUI();
+  if (anchorEl && lostStreak >= 3) {
+    popPoints(anchorEl, `streak −${lostStreak}`, "minus");
+  }
+}
+
+function updateScoreUI() {
+  document.getElementById("score-points").textContent = state.score.points;
+  document.getElementById("score-streak").textContent = state.score.streak;
+  document.getElementById("score-best").textContent = state.score.best;
+  document.getElementById("streak-fire").hidden = state.score.streak < 3;
+}
+
+function popPoints(anchorEl, text, sign) {
+  const pop = document.createElement("span");
+  pop.className = `points-pop${sign === "minus" ? " minus" : ""}`;
+  pop.textContent = text;
+  // anchorEl needs to be position:relative; we ensure that with style fallback.
+  const cs = getComputedStyle(anchorEl);
+  if (cs.position === "static") anchorEl.style.position = "relative";
+  pop.style.left = "50%";
+  pop.style.top = "30%";
+  pop.style.transform = "translate(-50%, 0)";
+  anchorEl.appendChild(pop);
+  setTimeout(() => pop.remove(), 1200);
+}
 
 // Curated duel pairs — natural antonyms / contrasts / siblings.
 // At runtime we filter to pairs where both words exist in the data.
@@ -228,6 +299,7 @@ function pickDuelPair() {
 
 function newRound() {
   if (state.mode === "duel") return newDuelRound();
+  if (state.mode === "imposter") return newImposterRound();
 
   const target = sample(state.words, 1)[0];
   const decoys = sample(state.words, 3, new Set([target]));
@@ -243,6 +315,105 @@ function newRound() {
   };
 
   renderRound();
+}
+
+function pickN(arr, n) {
+  // Sample n distinct items from arr without mutating arr.
+  const pool = arr.slice();
+  const out = [];
+  while (out.length < n && pool.length) {
+    const i = Math.floor(Math.random() * pool.length);
+    out.push(pool.splice(i, 1)[0]);
+  }
+  return out;
+}
+
+function newImposterRound() {
+  // Pick a pack different from the previous round when possible.
+  const available = state.round?.mode === "imposter" && IMPOSTER_PACKS.length > 1
+    ? IMPOSTER_PACKS.filter((p) => p.id !== state.round.pack.id)
+    : IMPOSTER_PACKS;
+  const pack = available[Math.floor(Math.random() * available.length)];
+
+  const natives = pickN(pack.natives, 4).map((n) => ({ ...n, isImposter: false }));
+  const imposter = pickN(pack.imposters, 1)[0];
+  const cards = shuffle([...natives, { ...imposter, isImposter: true }]);
+  const imposterIndex = cards.findIndex((c) => c.isImposter);
+
+  state.round = {
+    mode: "imposter",
+    pack,
+    cards,
+    imposterIndex,
+    locked: false,
+    pick: null,
+  };
+
+  renderImposterRound();
+}
+
+function renderImposterRound() {
+  const r = state.round;
+  document.getElementById("imposter-title").textContent = r.pack.title;
+
+  const grid = document.getElementById("imp-grid");
+  grid.innerHTML = "";
+  r.cards.forEach((card, i) => {
+    const el = document.createElement("div");
+    el.className = "imp-card";
+    el.dataset.index = String(i);
+    el.innerHTML = `
+      <div class="imp-name">${card.name}</div>
+      <div class="imp-stamp"></div>
+      <div class="imp-note">${card.note}</div>
+    `;
+    el.addEventListener("click", () => onImposterPick(i));
+    grid.appendChild(el);
+  });
+
+  document.getElementById("result").innerHTML = "";
+  document.getElementById("next-btn").hidden = true;
+  document.getElementById("ask-gemini").hidden = true;
+  closeAnswer();
+}
+
+function onImposterPick(index) {
+  const r = state.round;
+  if (!r || r.locked) return;
+  r.locked = true;
+  r.pick = index;
+
+  const correct = index === r.imposterIndex;
+  const cards = document.querySelectorAll(".imp-card");
+  cards.forEach((el, i) => {
+    el.classList.add("locked", "revealed");
+    const card = r.cards[i];
+    const stamp = el.querySelector(".imp-stamp");
+    if (card.isImposter) {
+      el.classList.add("imposter");
+      stamp.textContent = "imposter";
+    } else {
+      el.classList.add("native");
+      stamp.textContent = "fits";
+    }
+    if (i === index) el.classList.add("picked");
+  });
+
+  const pickedEl = cards[index];
+  if (correct) awardCorrect(pickedEl);
+  else awardWrong(pickedEl);
+
+  const imposterCard = r.cards[r.imposterIndex];
+  const result = document.getElementById("result");
+  if (correct) {
+    result.innerHTML = `<span class="accent-correct">Caught it.</span> <em>${imposterCard.name}</em> — ${imposterCard.note}.`;
+  } else {
+    const pickedCard = r.cards[index];
+    result.innerHTML = `<span class="accent-wrong">Fooled.</span> <em>${pickedCard.name}</em> belonged. The imposter was <em>${imposterCard.name}</em> — ${imposterCard.note}.`;
+  }
+
+  document.getElementById("next-btn").hidden = false;
+  document.getElementById("next-btn").focus();
 }
 
 function newDuelRound() {
@@ -304,13 +475,6 @@ function onDuelPick(letter) {
   r.pick = letter;
 
   const correct = letter === r.correctLetter;
-  state.score.total++;
-  if (correct) {
-    state.score.correct++;
-    state.score.streak++;
-  } else {
-    state.score.streak = 0;
-  }
 
   // Re-render chart with reveal tags
   const card = document.getElementById("duel-card");
@@ -334,6 +498,9 @@ function onDuelPick(letter) {
     truth.classList.add("correct");
   }
 
+  if (correct) awardCorrect(picked);
+  else awardWrong(picked);
+
   const result = document.getElementById("result");
   if (correct) {
     result.innerHTML = `<span class="accent-correct">Right.</span> Curve ${letter} is <em>${r.questionWord}</em>.`;
@@ -341,10 +508,6 @@ function onDuelPick(letter) {
     const otherWord = r.questionWord === r.wordA ? r.wordB : r.wordA;
     result.innerHTML = `<span class="accent-wrong">Nope.</span> Curve ${letter} was <em>${otherWord}</em>; <em>${r.questionWord}</em> was ${r.correctLetter}.`;
   }
-
-  document.getElementById("score-correct").textContent = state.score.correct;
-  document.getElementById("score-total").textContent = state.score.total;
-  document.getElementById("score-streak").textContent = state.score.streak;
 
   document.getElementById("next-btn").hidden = false;
   document.getElementById("next-btn").focus();
@@ -393,14 +556,6 @@ function onPick(index) {
   state.round.pick = index;
 
   const correct = index === state.round.targetIndex;
-  state.score.total++;
-  if (correct) {
-    state.score.correct++;
-    state.score.streak++;
-  } else {
-    state.score.streak = 0;
-  }
-
   const cards = document.querySelectorAll(".card");
   cards.forEach((c, i) => {
     c.classList.add("locked", "revealed");
@@ -409,6 +564,10 @@ function onPick(index) {
     if (i === index && !correct) c.classList.add("wrong-pick");
   });
 
+  const pickedCard = cards[index];
+  if (correct) awardCorrect(pickedCard);
+  else awardWrong(pickedCard);
+
   const result = document.getElementById("result");
   if (correct) {
     result.innerHTML = `<span class="accent-correct">Right.</span> That's the curve for <em>${state.round.target}</em>.`;
@@ -416,10 +575,6 @@ function onPick(index) {
     const pickedWord = state.round.options[index];
     result.innerHTML = `<span class="accent-wrong">Nope.</span> You picked <em>${pickedWord}</em>. <em>${state.round.target}</em> was ${["A", "B", "C", "D"][state.round.targetIndex]}.`;
   }
-
-  document.getElementById("score-correct").textContent = state.score.correct;
-  document.getElementById("score-total").textContent = state.score.total;
-  document.getElementById("score-streak").textContent = state.score.streak;
 
   const nextBtn = document.getElementById("next-btn");
   nextBtn.hidden = false;
@@ -554,17 +709,28 @@ async function askGemini() {
 }
 
 function setMode(mode) {
-  if (mode !== "single" && mode !== "duel") return;
+  if (mode !== "single" && mode !== "duel" && mode !== "imposter") return;
   state.mode = mode;
-  document.getElementById("mode-single").classList.toggle("active", mode === "single");
-  document.getElementById("mode-duel").classList.toggle("active", mode === "duel");
-  document.getElementById("mode-single").setAttribute("aria-selected", mode === "single");
-  document.getElementById("mode-duel").setAttribute("aria-selected", mode === "duel");
+
+  const buttons = {
+    single: document.getElementById("mode-single"),
+    duel: document.getElementById("mode-duel"),
+    imposter: document.getElementById("mode-imposter"),
+  };
+  for (const [key, btn] of Object.entries(buttons)) {
+    btn.classList.toggle("active", mode === key);
+    btn.setAttribute("aria-selected", mode === key);
+  }
 
   document.getElementById("prompt-single").hidden = mode !== "single";
   document.getElementById("prompt-duel").hidden = mode !== "duel";
+  document.getElementById("prompt-imposter").hidden = mode !== "imposter";
   document.getElementById("grid").hidden = mode !== "single";
   document.getElementById("duel-stage").hidden = mode !== "duel";
+  document.getElementById("imposter-stage").hidden = mode !== "imposter";
+
+  // Gemini "ask why" only makes sense for the curve modes
+  document.getElementById("ask-gemini").hidden = true;
 
   closeAnswer();
   newRound();
@@ -572,10 +738,12 @@ function setMode(mode) {
 
 async function main() {
   await loadData();
+  updateScoreUI();
   document.getElementById("next-btn").addEventListener("click", newRound);
   document.getElementById("ask-gemini").addEventListener("click", askGemini);
   document.getElementById("mode-single").addEventListener("click", () => setMode("single"));
   document.getElementById("mode-duel").addEventListener("click", () => setMode("duel"));
+  document.getElementById("mode-imposter").addEventListener("click", () => setMode("imposter"));
   document.getElementById("duel-pick-a").addEventListener("click", () => onDuelPick("A"));
   document.getElementById("duel-pick-b").addEventListener("click", () => onDuelPick("B"));
 
@@ -594,6 +762,12 @@ async function main() {
       const map = { "1": 0, "2": 1, "3": 2, "4": 3, a: 0, b: 1, c: 2, d: 3 };
       const idx = map[e.key.toLowerCase()];
       if (idx !== undefined) onPick(idx);
+      return;
+    }
+    if (state.mode === "imposter" && !state.round?.locked) {
+      const map = { "1": 0, "2": 1, "3": 2, "4": 3, "5": 4 };
+      const idx = map[e.key];
+      if (idx !== undefined && idx < state.round.cards.length) onImposterPick(idx);
     }
   });
   newRound();
