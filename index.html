@@ -3,19 +3,19 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>wordpeak — slang imposter</title>
+    <title>wordpeak — guess the curve</title>
     <meta
       name="description"
-      content="Spot the slang word that doesn't belong. One imposter from a different decade hides among three natives."
+      content="A daily-style guessing game built on Google Books Ngram data. Four unlabeled curves, one target word — pick the one that fits."
     />
     <meta name="theme-color" content="#f3ecdb" />
     <meta name="color-scheme" content="light" />
 
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="wordpeak — slang imposter" />
+    <meta property="og:title" content="wordpeak — guess the curve" />
     <meta
       property="og:description"
-      content="Three slang words from one decade. One imposter from another. Spot it."
+      content="Four Google Books Ngram curves, one word. Pick the one that fits."
     />
     <meta property="og:url" content="https://wordpeak.app/" />
     <meta name="twitter:card" content="summary" />
@@ -34,51 +34,108 @@
     <header class="hdr">
       <div class="brand">
         <span class="brand-mark">wordpeak</span>
-        <span class="brand-tag">spot the slang imposter</span>
+        <span class="brand-tag">a curve-guessing game</span>
+      </div>
+      <div class="mode-switch" role="tablist" aria-label="game mode">
+        <button class="mode-btn active" id="mode-single" type="button" role="tab" aria-selected="true">solo</button>
+        <button class="mode-btn" id="mode-duel" type="button" role="tab" aria-selected="false">duel</button>
+        <button class="mode-btn" id="mode-imposter" type="button" role="tab" aria-selected="false">imposter</button>
       </div>
       <div class="score">
         <div class="score-cell">
           <span class="score-val" id="score-points">0</span>
-          <span class="score-lbl">score</span>
+          <span class="score-lbl" id="score-points-lbl">score</span>
         </div>
         <div class="score-cell">
           <span class="score-val">
             <span id="score-streak">0</span><span class="streak-fire" id="streak-fire" hidden></span>
           </span>
-          <span class="score-lbl">streak</span>
+          <span class="score-lbl" id="score-streak-lbl">streak</span>
         </div>
         <div class="score-cell">
           <span class="score-val" id="score-best">0</span>
-          <span class="score-lbl">best</span>
+          <span class="score-lbl" id="score-best-lbl">best</span>
         </div>
       </div>
     </header>
 
     <main class="main">
-      <section class="prompt">
-        <div class="prompt-lead">spot the imposter</div>
-        <h1 class="imposter-title" id="imposter-title">—</h1>
-        <div class="prompt-sub">three belong · one is from a different decade</div>
+      <section class="answer" id="answer" hidden>
+        <div class="answer-text" id="answer-text"></div>
       </section>
 
-      <section class="imposter-stage">
+      <section class="prompt" id="prompt-single">
+        <div class="prompt-lead">which curve charts the word</div>
+        <h1 class="target" id="target">—</h1>
+        <div class="prompt-sub">
+          usage frequency in the Google Books English corpus,
+          <span id="year-range">1800–2019</span>
+        </div>
+      </section>
+
+      <section class="prompt" id="prompt-duel" hidden>
+        <div class="prompt-lead">match the curves · two words, one chart</div>
+        <h1 class="duel-title">
+          <span class="quote">“</span><em id="duel-word-a">—</em><span class="quote">”</span>
+          <span class="duel-vs">vs</span>
+          <span class="quote">“</span><em id="duel-word-b">—</em><span class="quote">”</span>
+        </h1>
+        <div class="prompt-sub">
+          which curve is <em id="duel-question-word">—</em>?
+        </div>
+      </section>
+
+      <section class="grid" id="grid"></section>
+
+      <section class="duel-stage" id="duel-stage" hidden>
+        <div class="duel-card" id="duel-card"></div>
+        <div class="duel-picker">
+          <button class="duel-pick" id="duel-pick-a" type="button">
+            <span class="duel-letter">A</span>
+          </button>
+          <button class="duel-pick" id="duel-pick-b" type="button">
+            <span class="duel-letter">B</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="prompt" id="prompt-imposter" hidden>
+        <div class="prompt-lead">spot the imposter</div>
+        <h1 class="imposter-title" id="imposter-title">—</h1>
+        <div class="prompt-sub">four belong · one is from a different era</div>
+      </section>
+
+      <section class="imposter-stage" id="imposter-stage" hidden>
         <div class="imp-grid" id="imp-grid"></div>
       </section>
 
       <section class="controls">
         <div class="result" id="result" aria-live="polite"></div>
         <div class="controls-buttons">
+          <button
+            class="btn btn-secondary"
+            id="ask-gemini"
+            type="button"
+            hidden
+          >
+            <span class="gemini-spark" aria-hidden="true">✦</span>
+            ask gemini why
+          </button>
           <button class="btn" id="next-btn" type="button" hidden>
-            next round →
+            next word →
           </button>
         </div>
       </section>
+
     </main>
 
     <footer class="ftr">
-      <span>slang dates are best-effort — eras blur at the edges</span>
+      <span
+        >data: Google Books Ngram Viewer · curves normalized to each word's
+        own peak</span
+      >
     </footer>
 
-    <script type="module" src="./game.js?v=slang1"></script>
+    <script type="module" src="./game.js?v=journey1"></script>
   </body>
 </html>
